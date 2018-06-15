@@ -1,7 +1,15 @@
 module CellFishing
 
-import CodecZlib: GzipDecompressorStream
-import CodecZstd: ZstdDecompressorStream
+using CodecZlib: GzipDecompressorStream
+using CodecZstd: ZstdDecompressorStream
+
+if VERSION > v"0.7-"
+    using LinearAlgebra: lufact!, qrfact!
+    using IterativeEigensolvers: svds
+    using StatsBase: std
+else
+    using Compat: undef, minimum, maximum, sum, mean, std
+end
 
 const DEBUG = Ref(false)
 macro d(ex)
@@ -75,8 +83,8 @@ end
 
 function filter_by_maximum(lo::Integer)
     function (Y)
-        min = vec(minimum(Y, 2))
-        max = vec(maximum(Y, 2))
+        min = vec(minimum(Y, dims=2))
+        max = vec(maximum(Y, dims=2))
         return (max .> min) .& (max .≥ lo)
     end
 end
@@ -157,15 +165,15 @@ function preprocess_shared(
     X::Matrix{Float32} = copy(Y.data)
     # normalize cell counts
     if normalize
-        X .*= scalefactor ./ sum(X, 1)
+        X .*= scalefactor ./ sum(X, dims=1)
     end
     # apply variance-stabilizing transformation
     transform!(transformer, X)
     # standardize genes
-    μ = vec(mean(X, 2))
+    μ = vec(mean(X, dims=2))
     X .-= μ
     if standardize
-        σ = vec(std(X, 2))
+        σ = vec(std(X, dims=2))
         if any(σ .== 0)
             throw(ArgumentError("found genes with no variance; filter genes first"))
         end
@@ -197,15 +205,15 @@ function _preprocess!(
         standardize, dropprob)
     # normalize cell counts
     if normalize
-        X .*= scalefactor ./ sum(X, 1)
+        X .*= scalefactor ./ sum(X, dims=1)
     end
     # variance-stable transformation
     transform!(transformer, X)
     # standardize genes
-    m = vec(mean(X, 2))
+    m = vec(mean(X, dims=2))
     X .-= m
     if standardize
-        s = vec(std(X, 2))
+        s = vec(std(X, dims=2))
         if any(s .== 0)
             throw(ArgumentError("found genes with no variance; filter genes first"))
         end
@@ -223,7 +231,7 @@ function _preprocess!(
     return X, m, invstd, drop
 end
 
-permuterows(perm::Vector{Int}, Y::AbstractMatrix) = convert(Matrix{Float32}, full(Y[perm,:]))
+permuterows(perm::Vector{Int}, Y::AbstractMatrix) = convert(Matrix{Float32}, Y[perm,:])
 
 function permuterows(perm::Vector{Int}, Y::Matrix{Float32})
     m = length(perm)
@@ -246,7 +254,7 @@ end
 function preprocess(proc::Preprocessor, Y::Matrix{Float32})
     Y = copy(Y)
     if proc.normalize
-        Y .*= proc.scalefactor ./ sum(Y, 1)
+        Y .*= proc.scalefactor ./ sum(Y, dims=1)
     end
     transform!(proc.transformer, Y)
     if proc.standardize
@@ -267,7 +275,7 @@ function preprocess_shared(proc::Preprocessor, Y::ExpressionMatrix)
     end
     X = permuterows(perm, Y.data)::Matrix{Float32}  # should be inferable
     if proc.normalize
-        X .*= proc.scalefactor ./ sum(X, 1)
+        X .*= proc.scalefactor ./ sum(X, dims=1)
     end
     transform!(proc.transformer, X)
     if proc.standardize
@@ -370,11 +378,11 @@ function generate_random_projections(K::Integer, D::Integer, superbit::Integer)
     for _ in 1:q
         # generate an orthogonal random matrix.
         M = randn(Float32, D, superbit)
-        push!(Ps, full(qrfact(M)[:Q])')
+        push!(Ps, Matrix(qrfact!(M)[:Q])')
     end
     if r > 0
         M = randn(Float32, D, r)
-        push!(Ps, full(qrfact(M)[:Q])')
+        push!(Ps, Matrix(qrfact!(M)[:Q])')
     end
     return vcat(Ps...)
 end
@@ -466,7 +474,7 @@ function CellIndex(Y::AbstractMatrix;
     @d println("# minmaxcount: $(minmaxcount)")
     keep = filter_by_maximum(minmaxcount)(Y)
     @d println("# tags: $(size(Y, 1)) (kept: $(sum(keep)), dropped: $(sum(.~keep)))")
-    Y = ExpressionMatrix(convert(Matrix{Float32}, full(Y[keep,:])), tagnames[keep])
+    Y = ExpressionMatrix(convert(Matrix{Float32}, Matrix(Y[keep,:])), tagnames[keep])
     # make cell sketches
     T = n_bits ==   32 ? BitVec32   :
         n_bits ==   64 ? BitVec64   :
@@ -486,7 +494,7 @@ function CellIndex(Y::AbstractMatrix;
     for _ in 1:n_lshashes
         # random feature (gene) drop
         drop = zeros(Float32, size(X, 1))
-        drop[rand(size(X, 1)) .≥ dropprob] = 1
+        drop[rand(size(X, 1)) .≥ dropprob] .= 1.0
         X .*= drop
         # reduce dimensions
         dimreducer = PCA(n_dims, randomize=randomize)
@@ -494,7 +502,7 @@ function CellIndex(Y::AbstractMatrix;
         X′ = reducedims(dimreducer, X)
         preproc = Preprocessor(Y.tagnames, transformer, dimreducer, normalize, standardize, scalefactor, mean, invstd, drop)
         P = generate_random_projections(n_bits, n_dims, superbit)
-        Z = Vector{T}(size(X, 2))
+        Z = Vector{T}(undef, size(X, 2))
         sketch!(Z, X′, P)
         push!(lshashes, LSHash(preproc, P, HammingIndex(Z, index=index)))
     end
@@ -506,7 +514,7 @@ function select_minmaxcount(Y::AbstractMatrix, n::Integer)
     if size(Y, 1) ≤ n
         return Int(0)
     end
-    x = sort!(vec(maximum(Y, 2)), rev=true)
+    x = sort!(vec(maximum(Y, dims=2)), rev=true)
     return Int(x[n])
 end
 

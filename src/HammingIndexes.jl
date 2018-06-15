@@ -1,6 +1,6 @@
 module HammingIndexes
 
-using Compat: undef
+using Compat: undef, copyto!, Nothing
 
 
 # Simple List
@@ -11,7 +11,7 @@ mutable struct List{T}
     size::Int
 
     function List{T}(sizehint::Integer) where T
-        data = Vector{T}(sizehint)
+        data = Vector{T}(undef, sizehint)
         return new(data, 0)
     end
 end
@@ -169,12 +169,12 @@ struct SubIndex
     function SubIndex(s::Int, filled::SucVector, buckets::Vector{Vector{Int32}})
         @assert s ≤ 32
         @assert length(buckets) == rank1(filled, length(filled))
-        offsets = Vector{Int32}(length(buckets)+1)
+        offsets = Vector{Int32}(undef, length(buckets)+1)
         buckets_concat = zeros(Int32, sum(length(b) for b in buckets) + 16)  # margin for prefetching
         offset = 1
         for (i, bucket) in enumerate(buckets)
             offsets[i] = offset
-            copy!(buckets_concat, offset, bucket, 1, length(bucket))
+            copyto!(buckets_concat, offset, bucket, 1, length(bucket))
             offset += length(bucket)
         end
         offsets[length(buckets)+1] = offset
@@ -493,7 +493,7 @@ end
 @inline function prefetch(addr::Ptr, write::Bool=false, locality::Int=0)
     ccall(
         "llvm.prefetch", llvmcall,
-        Void, (Ptr{UInt8}, Int32, Int32, Int32),
+        Nothing, (Ptr{UInt8}, Int32, Int32, Int32),
         # address to be prefetched
         addr,
         # read mode (0), write mode (1)

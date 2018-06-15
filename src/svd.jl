@@ -20,7 +20,7 @@ function rsvd(A::Matrix{T}, k::Integer; its=3, l=k+5) where T
     @assert 0 < k ≤ l ≤ min(m, n)
     Q::Matrix{T} = rand(eltype(T), n, l) .- T(0.5)
     Y = A*Q
-    F = lufact(Y)
+    F = lufact!(Y)
     for i in 1:its
         Y = A'F[:L]
         F = lufact!(Y)
@@ -31,7 +31,7 @@ function rsvd(A::Matrix{T}, k::Integer; its=3, l=k+5) where T
             F = qrfact!(Y)
         end
     end
-    Q = full(F[:Q])
+    Q = Matrix(F[:Q])
     B = Q'A
     W, Σ, V = svd(B)
     U = Q*W
