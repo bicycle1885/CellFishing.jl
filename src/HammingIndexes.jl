@@ -440,8 +440,6 @@ function findknn!(::MultiIndexSearch, nns::NearestNeighbors, q::T, index::Hammin
         @goto finish
     end
     # progressively search the Hamming space for k nearest neighbors
-    #ranges = UnitRange{Int32}[]
-    #sizehint!(ranges, 128)
     ranges = List{UnitRange{Int32}}(128)
     m = length(index.subindexes)
     r = r′ = a = 0
