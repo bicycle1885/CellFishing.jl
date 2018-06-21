@@ -416,6 +416,25 @@ ncells(index::CellIndex) = length(index.lshashes[1].hammingindex)
     CellIndex{T}(Y; <keyword arguments>...)
 
 Create a cell index from a count matrix `Y`.
+
+Arguments
+---------
+
+- `Y`: transcriptome expression matrix (features x cells) [required].
+- `tagnames`: feature names [required].
+- `metadata`: arbitrary metadata.
+- `n_bits=128`: the number of bits.
+- `n_lshashes=4`: the number of locality-sensitive hashes.
+- `index=true`: to create bit index(es) or not.
+- `n_min_features=cld(size(Y, 1), 10)`: the minimum number of features.
+- `dropprob=0`: the probability of dropping features.
+- `scalefactor=1.0e4`: the scale factor of library sizes.
+- `n_dims=50`: the number of dimensions after PCA.
+- `superbit=min(n_dims, n_bits)`: the depth of super-bits.
+- `transformer=:log1p`: the variance-stabilizing transformer (`:log1p` or `:ftt`).
+- `randomize=true`: to use randomized SVD or not.
+- `normalize=true`: to normalize library sizes or not.
+- `standardize=true`: to standardize features or not.
 """
 function CellIndex(Y::AbstractMatrix;
                    # additional data
@@ -427,7 +446,7 @@ function CellIndex(Y::AbstractMatrix;
                    index::Bool=true,
                    # parameters for preprocessing
                    n_min_features::Integer=cld(size(Y, 1), 10),
-                   dropprob::Real=0.0,
+                   dropprob::Real=0,
                    scalefactor::Real=1.0e4,
                    n_dims::Integer=50,
                    superbit::Integer=min(n_dims, n_bits),
@@ -540,6 +559,15 @@ end
 # k-NN Searcher
 # -------------
 
+"""
+A set of k-nearest neighboring cells.
+
+Fields
+------
+
+- `indexes`: cell indexes (k x n-queries).
+- `hammingdistances`: Hamming distances (k x n-queries).
+"""
 struct NearestCells
     indexes::Matrix{Int}
     hammingdistances::Matrix{Int16}
@@ -548,6 +576,11 @@ struct NearestCells
     NearestCells(k, n) = new(zeros(Int, k, n), zeros(Int16, k, n))
 end
 
+"""
+    findknn(k::Integer, Y::AbstractMatrix, tagnames::Vector{String}, index::CellIndex) -> NearestCells
+
+Find `k`-nearest neighboring cells from `index`.
+"""
 function findknn(k::Integer, Y::AbstractMatrix, tagnames::Vector{String}, index::CellIndex)
     return findknn(k, ExpressionMatrix(Y, tagnames), index)
 end
