@@ -163,7 +163,7 @@ function preprocess_shared(
     if standardize
         σ = vec(std(X, dims=2))
         if any(σ .== 0)
-            throw(ArgumentError("found genes with no variance; filter genes first"))
+            throw(ArgumentError("found $(sum(σ .== 0)) genes with no variance; filter genes first"))
         end
         invstd = inv.(σ)
         X .*= invstd
@@ -467,13 +467,6 @@ struct CellIndex
     lshashes::Vector{LSHash{T}} where T
     # run-time statistics
     rtstats::RuntimeStats
-end
-
-function Base.show(io::IO, index::CellIndex)
-    println(io, summary(index), ':')
-    println(io, "  n.cells = ", ncells(index))
-    println(io, "  time.preproc = ", index.rtstats.preproc_time, " ns")
-      print(io, "  time.search  = ", index.rtstats.search_time, " ns")
 end
 
 nbits(index::CellIndex) = bitsof(bitvectype(index.lshashes[1]))
