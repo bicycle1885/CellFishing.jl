@@ -14,7 +14,7 @@ features = string.(data[:,1])
 counts = Matrix{Float32}(data[:,2:end])
 
 # Create an index (or a database).
-index = CellFishing.CellIndex(counts, tagnames=features, metadata=cellnames)
+index = CellFishing.CellIndex(counts, featurenames=features, metadata=cellnames)
 
 # Save/load the database to/from a file (optional).
 # CellFishing.save("database.cf", index)

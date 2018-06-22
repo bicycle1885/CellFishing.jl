@@ -40,29 +40,29 @@ approxangle(x::T, y::T) where {T<:BitVec} = hammdist(x, y) * Float32(pi) / bitso
 # A matrix wrapper.
 struct ExpressionMatrix{T}
     data::AbstractMatrix{T}
-    tagmap::Dict{String,Int}
-    tagnames::Vector{String}
+    featuremap::Dict{String,Int}
+    featurenames::Vector{String}
     cellnames::Vector{String}
 
-    function ExpressionMatrix(data::AbstractMatrix{T}, tagnames, cellnames=nothing) where T
+    function ExpressionMatrix(data::AbstractMatrix{T}, featurenames, cellnames=nothing) where T
         m, n = size(data)
-        if m != length(tagnames)
-            throw(ArgumentError("wrong number of tag names"))
+        if m != length(featurenames)
+            throw(ArgumentError("wrong number of feature names"))
         end
-        tagmap = Dict{String,Int}()
-        for (i, tag) in enumerate(tagnames)
-            if haskey(tagmap, tag)
-                throw(ArgumentError("found duplicated tag names: '$(tag)'"))
+        featuremap = Dict{String,Int}()
+        for (i, feature) in enumerate(featurenames)
+            if haskey(featuremap, feature)
+                throw(ArgumentError("found duplicated feature names: '$(feature)'"))
             end
-            tagmap[tag] = i
+            featuremap[feature] = i
         end
         if cellnames == nothing
-            return new{T}(data, tagmap, tagnames)
+            return new{T}(data, featuremap, featurenames)
         else
             if n != length(cellnames)
                 throw(ArgumentError("wrong number of cell names"))
             end
-            return new{T}(data, tagmap, tagnames, cellnames)
+            return new{T}(data, featuremap, featurenames, cellnames)
         end
     end
 end
@@ -73,7 +73,7 @@ Base.size(M::ExpressionMatrix, d::Integer) = size(M.data, d)
 function Base.convert(::Type{ExpressionMatrix{S}}, M::ExpressionMatrix{T}) where {S,T}
     return ExpressionMatrix(
         convert(Matrix{S}, M.data),
-        M.tagnames,
+        M.featurenames,
         isdefined(M, :cellnames) ? M.cellnames : nothing)
 end
 
@@ -124,7 +124,7 @@ mutable struct PCA
     PCA(dims::Integer; randomize::Bool=true) = new(dims, randomize)
 end
 
-# NOTE: This assumes features are already centered (if needed).
+# NOTE: This assumes gs are already centered (if needed).
 function fit!(pca::PCA, X::AbstractMatrix)
     if pca.randomize
         pca.proj, = rsvd(X, pca.dims)
@@ -141,7 +141,7 @@ reducedims(pca::PCA, X::AbstractMatrix) = At_mul_B(pca.proj, X)
 
 # permutation, log transformation, scaling, projection, etc.
 struct Preprocessor
-    tagnames::Vector{String}
+    featurenames::Vector{String}
     transformer::Union{LogT,FTT}
     dimreducer::PCA
     normalize::Bool
@@ -149,10 +149,10 @@ struct Preprocessor
     scalefactor::Float32     # used for normalization
     mean::Vector{Float32}    # used for PCA
     invstd::Vector{Float32}  # used for standardization
-    drop::Vector{Float32}    # used for feature dropping
+    drop::Vector{Float32}    # used for g dropping
 end
 
-indims(p::Preprocessor) = length(p.tagnames)
+indims(p::Preprocessor) = length(p.featurenames)
 outdims(p::Preprocessor) = p.dimreducer.dims
 
 function preprocess_shared(
@@ -195,7 +195,7 @@ function make_preprocessor(
         scalefactor::Float32)
     @assert Y.data isa Matrix{Float32}  # must be a dense matrix
     X, mean, invstd, drop = _preprocess!(copy(Y.data), normalize, scalefactor, transformer, dimreducer, standardize, dropprob)
-    return X, Preprocessor(Y.tagnames, transformer, dimreducer, normalize, standardize, scalefactor, mean, invstd, drop)
+    return X, Preprocessor(Y.featurenames, transformer, dimreducer, normalize, standardize, scalefactor, mean, invstd, drop)
 end
 
 function _preprocess!(
@@ -222,7 +222,7 @@ function _preprocess!(
     else
         s = invstd = Float32[]
     end
-    # random feature (gene) drop
+    # random g (gene) drop
     drop = zeros(Float32, size(X, 1))
     drop[rand(size(X, 1)) .≥ dropprob] = 1
     X .*= drop
@@ -269,9 +269,9 @@ function preprocess(proc::Preprocessor, Y::Matrix{Float32})
 end
 
 function preprocess_shared(proc::Preprocessor, Y::ExpressionMatrix)
-    perm = zeros(Int, length(proc.tagnames))
-    for (i, tag) in enumerate(proc.tagnames)
-        perm[i] = Y.tagmap[tag]
+    perm = zeros(Int, length(proc.featurenames))
+    for (i, feature) in enumerate(proc.featurenames)
+        perm[i] = Y.featuremap[feature]
     end
     X = permuterows(perm, Y.data)::Matrix{Float32}  # should be inferable
     if proc.normalize
@@ -392,8 +392,8 @@ end
 # ---------
 
 struct CellIndex
-    # tag (gene) names
-    tagnames::Vector{String}
+    # feature (gene) names
+    featurenames::Vector{String}
     # any user-provided metadata (e.g. cellnames)
     metadata::Any
     # locality-sensitive hashes
@@ -420,25 +420,25 @@ Create a cell index from a count matrix `Y`.
 Arguments
 ---------
 
-- `Y`: transcriptome expression matrix (features x cells) [required].
-- `tagnames`: feature names [required].
+- `Y`: transcriptome expression matrix (gs x cells) [required].
+- `featurenames`: feature names [required].
 - `metadata`: arbitrary metadata.
 - `n_bits=128`: the number of bits (64, 128, 256, 512, or 1024).
 - `n_lshashes=4`: the number of locality-sensitive hashes.
 - `index=true`: to create bit index(es) or not.
 - `n_min_features=cld(size(Y, 1), 10)`: the minimum number of features.
-- `dropprob=0`: the probability of dropping features.
+- `dropprob=0`: the probability of dropping gs.
 - `scalefactor=1.0e4`: the scale factor of library sizes.
 - `n_dims=50`: the number of dimensions after PCA.
 - `superbit=min(n_dims, n_bits)`: the depth of super-bits.
 - `transformer=:log1p`: the variance-stabilizing transformer (`:log1p` or `:ftt`).
 - `randomize=true`: to use randomized SVD or not.
 - `normalize=true`: to normalize library sizes or not.
-- `standardize=true`: to standardize features or not.
+- `standardize=true`: to standardize gs or not.
 """
 function CellIndex(Y::AbstractMatrix;
                    # additional data
-                   tagnames=nothing,
+                   featurenames=nothing,
                    metadata=nothing,
                    # parameters for LSH
                    n_bits::Integer=128,
@@ -459,10 +459,10 @@ function CellIndex(Y::AbstractMatrix;
     if !(eltype(Y) <: Real)
         throw(ArgumentError("invalid expression matrix"))
     end
-    if tagnames == nothing
-        throw(ArgumentError("tagnames is missing"))
-    elseif !(tagnames isa AbstractVector) || length(tagnames) != M
-        throw(ArgumentError("invalid tagnames"))
+    if featurenames == nothing
+        throw(ArgumentError("featurenames is missing"))
+    elseif !(featurenames isa AbstractVector) || length(featurenames) != M
+        throw(ArgumentError("invalid featurenames"))
     end
     if n_bits ∉ (64, 128, 256, 512, 1024)
         throw(ArgumentError("invalid n_bits"))
@@ -492,8 +492,8 @@ function CellIndex(Y::AbstractMatrix;
     minmaxcount = select_minmaxcount(Y, n_min_features)
     @d println("# minmaxcount: $(minmaxcount)")
     keep = filter_by_maximum(minmaxcount)(Y)
-    @d println("# tags: $(size(Y, 1)) (kept: $(sum(keep)), dropped: $(sum(.~keep)))")
-    Y = ExpressionMatrix(convert(Matrix{Float32}, Matrix(Y[keep,:])), tagnames[keep])
+    @d println("# features: $(size(Y, 1)) (kept: $(sum(keep)), dropped: $(sum(.~keep)))")
+    Y = ExpressionMatrix(convert(Matrix{Float32}, Matrix(Y[keep,:])), featurenames[keep])
     # make cell sketches
     T = n_bits ==   64 ? BitVec64   :
         n_bits ==  128 ? BitVec128  :
@@ -510,7 +510,7 @@ function CellIndex(Y::AbstractMatrix;
     X, mean, invstd = preprocess_shared(Y, transformer, normalize, standardize, Float32(scalefactor))
     lshashes = LSHash{T}[]
     for _ in 1:n_lshashes
-        # random feature (gene) drop
+        # random g (gene) drop
         drop = zeros(Float32, size(X, 1))
         drop[rand(size(X, 1)) .≥ dropprob] .= 1.0
         X .*= drop
@@ -518,14 +518,14 @@ function CellIndex(Y::AbstractMatrix;
         dimreducer = PCA(n_dims, randomize=randomize)
         fit!(dimreducer, X)
         X′ = reducedims(dimreducer, X)
-        preproc = Preprocessor(Y.tagnames, transformer, dimreducer, normalize, standardize, scalefactor, mean, invstd, drop)
+        preproc = Preprocessor(Y.featurenames, transformer, dimreducer, normalize, standardize, scalefactor, mean, invstd, drop)
         P = generate_random_projections(n_bits, n_dims, superbit)
         Z = Vector{T}(undef, size(X, 2))
         sketch!(Z, X′, P)
         push!(lshashes, LSHash(preproc, P, HammingIndex(Z, index=index)))
     end
     # create a cell index
-    return CellIndex(tagnames, metadata, lshashes, RuntimeStats())
+    return CellIndex(featurenames, metadata, lshashes, RuntimeStats())
 end
 
 function select_minmaxcount(Y::AbstractMatrix, n::Integer)
@@ -576,12 +576,12 @@ struct NearestCells
 end
 
 """
-    findknn(k::Integer, Y::AbstractMatrix, tagnames::Vector{String}, index::CellIndex) -> NearestCells
+    findknn(k::Integer, Y::AbstractMatrix, featurenames::Vector{String}, index::CellIndex) -> NearestCells
 
 Find `k`-nearest neighboring cells from `index`.
 """
-function findknn(k::Integer, Y::AbstractMatrix, tagnames::Vector{String}, index::CellIndex)
-    return findknn(k, ExpressionMatrix(Y, tagnames), index)
+function findknn(k::Integer, Y::AbstractMatrix, featurenames::Vector{String}, index::CellIndex)
+    return findknn(k, ExpressionMatrix(Y, featurenames), index)
 end
 
 function findknn(k::Integer, Y::ExpressionMatrix, index::CellIndex)
@@ -592,7 +592,7 @@ function findknn(k::Integer, Y::ExpressionMatrix, index::CellIndex)
     L = length(index.lshashes)
     T = bitvectype(first(index.lshashes))
     @assert L ≥ 1
-    tagnames = index.lshashes[1].preprocessor.tagnames
+    featurenames = index.lshashes[1].preprocessor.featurenames
     rtstats = index.rtstats
     tic!(rtstats)
     # apply shared preprocessing

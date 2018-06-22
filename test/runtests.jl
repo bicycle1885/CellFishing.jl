@@ -90,17 +90,17 @@ end
     srand(1234)
     m = 100
     Y = convert(Matrix{Int32}, rand(0:1000, m, 200))
-    tagnames = [string("tag:", i) for i in 1:m]
+    featurenames = [string("feature:", i) for i in 1:m]
     index = CellFishing.CellIndex(
         Y,
-        tagnames=tagnames,
-        n_min_features=length(tagnames),
+        featurenames=featurenames,
+        n_min_features=length(featurenames),
         metadata=[string("cell:", j) for j in 1:size(Y, 2)])
     @test CellFishing.nbits(index) == 128
     @test CellFishing.ncells(index) == 200
-    @test index.tagnames[1] == "tag:1"
+    @test index.featurenames[1] == "feature:1"
     @test index.metadata[1] == "cell:1"
-    @test_throws ArgumentError CellFishing.CellIndex(Y, tagnames=["tag:1"])
+    @test_throws ArgumentError CellFishing.CellIndex(Y, featurenames=["feature:1"])
     @test contains(sprint(show, index), "CellIndex")
     mktempdir() do tmpdir
         tmpfile = joinpath(tmpdir, "index")
@@ -115,7 +115,7 @@ end
     srand(1234)
     m = 100
     Y = convert(Matrix{Int32}, rand(0:1000, m, 200))
-    tagnames = [string("tag:", i) for i in 1:m]
+    featurenames = [string("feature:", i) for i in 1:m]
     n = 0
     ok = 0
     for n_bits in [64, 128, 256, 512, 1024]
@@ -127,14 +127,14 @@ end
             index in false:true
             idx = CellFishing.CellIndex(
                 Y,
-                tagnames=tagnames,
+                featurenames=featurenames,
                 n_bits=n_bits,
-                n_min_features=length(tagnames),
+                n_min_features=length(featurenames),
                 n_dims=n_dims, superbit=superbit, randomize=randomize,
                 normalize=normalize, standardize=standardize,
                 index=index)
             perm = shuffle(1:m)
-            U = CellFishing.findknn(1, CellFishing.ExpressionMatrix(Y[perm,1:10], tagnames[perm]), idx)
+            U = CellFishing.findknn(1, CellFishing.ExpressionMatrix(Y[perm,1:10], featurenames[perm]), idx)
             for i in 1:10
                 j = U.indexes[1,i]
                 dist = U.hammingdistances[1,i]
