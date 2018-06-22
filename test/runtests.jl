@@ -86,20 +86,39 @@ end
     end
 end
 
+@testset "Features" begin
+    m = 100
+    names = string.("feature:", 1:m)
+    features = CellFishing.Features(names)
+    @test CellFishing.nfeatures(features) == m
+    @test CellFishing.nselected(features) == 0
+
+    # add features
+    features = CellFishing.addfeatures(features, ["feature:10", "feature:32", "feature:99"])
+    @test CellFishing.nfeatures(features) == m
+    @test CellFishing.nselected(features) == 3
+    @test CellFishing.selectedfeatures(features) == ["feature:10", "feature:32", "feature:99"]
+    @test_throws ArgumentError CellFishing.addfeatures(features, ["foo", "bar"])
+
+    # drop features
+    features = CellFishing.dropfeatures(features, ["feature:32"])
+    @test CellFishing.nfeatures(features) == m
+    @test CellFishing.nselected(features) == 2
+    @test CellFishing.selectedfeatures(features) == ["feature:10", "feature:99"]
+    @test_throws ArgumentError CellFishing.dropfeatures(features, ["foo", "bar"])
+end
+
 @testset "CellIndex" begin
     srand(1234)
-    m = 100
-    counts = convert(Matrix{Int32}, rand(0:1000, m, 200))
-    featurenames = [string("feature:", i) for i in 1:m]
+    m, n = 100, 200
+    counts = rand(0:1000, m, n)
+    featurenames = string.("feature:", 1:m)
     features = CellFishing.selectfeatures(counts, featurenames, n_min_features=m)
-    index = CellFishing.CellIndex(
-        counts, features,
-        metadata=[string("cell:", j) for j in 1:size(counts, 2)])
+    index = CellFishing.CellIndex(counts, features, metadata=string.("cell:", 1:n))
     @test CellFishing.nbits(index) == 128
-    @test CellFishing.ncells(index) == 200
+    @test CellFishing.ncells(index) == n
     @test index.featurenames[1] == "feature:1"
     @test index.metadata[1] == "cell:1"
-    #@test_throws ArgumentError CellFishing.CellIndex(counts, featurenames=["feature:1"])
     @test contains(sprint(show, index), "CellIndex")
     mktempdir() do tmpdir
         tmpfile = joinpath(tmpdir, "index")
@@ -112,11 +131,10 @@ end
     end
 
     srand(1234)
-    m = 100
-    counts = convert(Matrix{Int32}, rand(0:1000, m, 200))
-    featurenames = [string("feature:", i) for i in 1:m]
-    n = 0
-    ok = 0
+    m, n = 100, 200
+    counts = rand(0:1000, m, n)
+    featurenames = string.("feature:", 1:m)
+    all = ok = 0
     for n_bits in [64, 128, 256, 512, 1024],
         superbit in [1, 8, 17],
         n_dims in [64, m],
@@ -137,9 +155,9 @@ end
             j = U.indexes[1,i]
             dist = U.hammingdistances[1,i]
             @test dist == 0
-            n += 1
+            all += 1
             ok += i == j
         end
     end
-    println("$(ok) / $(n) = $(ok/n)")
+    @test ok / all ≈ 1.0
 end
