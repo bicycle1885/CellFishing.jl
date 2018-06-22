@@ -7,7 +7,6 @@ else
     using Base.Test
 end
 
-const BitVec32   = CellFishing.BitVec32
 const BitVec64   = CellFishing.BitVec64
 const BitVec128  = CellFishing.BitVec128
 const BitVec256  = CellFishing.BitVec256
@@ -16,7 +15,7 @@ const BitVec1024 = CellFishing.BitVec1024
 const HammingIndexes = CellFishing.HammingIndexes
 
 @testset "BitVectors" begin
-    for T in [BitVec32, BitVec64, BitVec128, BitVec256, BitVec512, BitVec1024]
+    for T in [BitVec64, BitVec128, BitVec256, BitVec512, BitVec1024]
         @test T <: CellFishing.BitVec
         @test convert(T, 0) isa T
         @test T(0) isa T
@@ -119,7 +118,7 @@ end
     tagnames = [string("tag:", i) for i in 1:m]
     n = 0
     ok = 0
-    for n_bits in [32, 64, 128, 256, 512, 1024]
+    for n_bits in [64, 128, 256, 512, 1024]
         for n_dims in [64, m],
             superbit in [1, 8, 17],
             randomize in false:true,

@@ -423,7 +423,7 @@ Arguments
 - `Y`: transcriptome expression matrix (features x cells) [required].
 - `tagnames`: feature names [required].
 - `metadata`: arbitrary metadata.
-- `n_bits=128`: the number of bits.
+- `n_bits=128`: the number of bits (64, 128, 256, 512, or 1024).
 - `n_lshashes=4`: the number of locality-sensitive hashes.
 - `index=true`: to create bit index(es) or not.
 - `n_min_features=cld(size(Y, 1), 10)`: the minimum number of features.
@@ -464,7 +464,7 @@ function CellIndex(Y::AbstractMatrix;
     elseif !(tagnames isa AbstractVector) || length(tagnames) != M
         throw(ArgumentError("invalid tagnames"))
     end
-    if n_bits ∉ (32, 64, 128, 256, 512, 1024)
+    if n_bits ∉ (64, 128, 256, 512, 1024)
         throw(ArgumentError("invalid n_bits"))
     end
     if !(1 ≤ n_min_features ≤ M)
@@ -495,8 +495,7 @@ function CellIndex(Y::AbstractMatrix;
     @d println("# tags: $(size(Y, 1)) (kept: $(sum(keep)), dropped: $(sum(.~keep)))")
     Y = ExpressionMatrix(convert(Matrix{Float32}, Matrix(Y[keep,:])), tagnames[keep])
     # make cell sketches
-    T = n_bits ==   32 ? BitVec32   :
-        n_bits ==   64 ? BitVec64   :
+    T = n_bits ==   64 ? BitVec64   :
         n_bits ==  128 ? BitVec128  :
         n_bits ==  256 ? BitVec256  :
         n_bits ==  512 ? BitVec512  :
