@@ -30,7 +30,7 @@ counts = Matrix{Float32}(data[:,2:end])
 
 # Search the database for similar cells.
 k = 10
-neighbors = CellFishing.findknn(k, counts, featurenames, index)
+neighbors = CellFishing.findneighbors(k, counts, featurenames, index)
 
 # Write the neighboring cells to a file.
 open("neighbors.tsv", "w") do file

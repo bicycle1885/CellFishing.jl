@@ -320,10 +320,10 @@ end
 
 bitvectype(::LSHash{T}) where T = T
 
-function findknn!(neighbors::Matrix{Int},
-                  Z::Vector{T},
-                  X::Matrix{Float32},
-                  lshash::LSHash{T}) where T
+function findneighbors!(neighbors::Matrix{Int},
+                        Z::Vector{T},
+                        X::Matrix{Float32},
+                        lshash::LSHash{T}) where T
     @assert length(Z) == size(neighbors, 2) == size(X, 2)
     sketch!(Z, X, lshash)
     # search for k-nearest neighbors
@@ -626,15 +626,15 @@ struct NearestCells
 end
 
 """
-    findknn(k::Integer, Y::AbstractMatrix, featurenames::Vector{String}, index::CellIndex) -> NearestCells
+    findneighbors(k::Integer, counts::AbstractMatrix, featurenames::Vector{String}, index::CellIndex) -> NearestCells
 
 Find `k`-nearest neighboring cells from `index`.
 """
-function findknn(k::Integer, Y::AbstractMatrix, featurenames::Vector{String}, index::CellIndex)
-    return findknn(k, ExpressionMatrix(Y, featurenames), index)
+function findneighbors(k::Integer, counts::AbstractMatrix, featurenames::Vector{String}, index::CellIndex)
+    return findneighbors(k, ExpressionMatrix(counts, featurenames), index)
 end
 
-function findknn(k::Integer, Y::ExpressionMatrix, index::CellIndex)
+function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex)
     if k < 0
         throw(ArgumentError("negative k"))
     end
@@ -656,7 +656,7 @@ function findknn(k::Integer, Y::ExpressionMatrix, index::CellIndex)
         lshash = index.lshashes[l]
         X′ = preprocess_specific(lshash.preprocessor, X)
         rtstats.preproc_time += tic!(rtstats)
-        findknn!(neighbors_tmp, Z_tmp, X′, lshash)
+        findneighbors!(neighbors_tmp, Z_tmp, X′, lshash)
         neighbors[k*(l-1)+1:k*l,:] = neighbors_tmp
         Z[l,:] = Z_tmp
         rtstats.search_time += tic!(rtstats)
