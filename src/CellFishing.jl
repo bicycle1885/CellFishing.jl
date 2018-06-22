@@ -78,18 +78,6 @@ function Base.convert(::Type{ExpressionMatrix{S}}, M::ExpressionMatrix{T}) where
 end
 
 
-# Gene Filter
-# -----------
-
-function filter_by_maximum(lo::Integer)
-    function (Y)
-        min = vec(minimum(Y, dims=2))
-        max = vec(maximum(Y, dims=2))
-        return (max .> min) .& (max .≥ lo)
-    end
-end
-
-
 # Transformation
 # --------------
 
@@ -124,7 +112,7 @@ mutable struct PCA
     PCA(dims::Integer; randomize::Bool=true) = new(dims, randomize)
 end
 
-# NOTE: This assumes gs are already centered (if needed).
+# NOTE: This assumes features are already centered (if needed).
 function fit!(pca::PCA, X::AbstractMatrix)
     if pca.randomize
         pca.proj, = rsvd(X, pca.dims)
@@ -388,6 +376,85 @@ function generate_random_projections(K::Integer, D::Integer, superbit::Integer)
 end
 
 
+# Feature Selection
+# -----------------
+
+struct Features
+    names::Vector{String}
+    selected::BitVector
+
+    function Features(names, selected)
+        if length(names) != length(selected)
+            throw(ArgumentError("mismatching length"))
+        end
+        return new(names, selected)
+    end
+end
+
+Features(names::AbstractVector{String}) = Features(names, falses(length(names)))
+
+Base.copy(features::Features) = Features(copy(features.names), copy(features.selected))
+
+function Base.show(io::IO, features::Features)
+    print(io, summary(features), "(<n-features=$(nfeatures(features)),n-selected=$(nselected(features))>)")
+end
+
+nfeatures(features::Features) = length(features.names)
+nselected(features::Features) = sum(features.selected)
+selectedfeatures(features::Features) = features.names[features.selected]
+
+addfeatures(features::Features, featurenames::AbstractVector{String}) = addfeatures!(copy(features), featurenames)
+function addfeatures!(features::Features, featurenames::AbstractVector{String})
+    for name in featurenames
+        i = findfirst(features.names, name)
+        if i == 0
+            throw(ArgumentError("not found feature '$(name)'"))
+        end
+        features.selected[i] = true
+    end
+    return features
+end
+
+dropfeatures(features::Features, featurenames::AbstractVector{String}) = dropfeatures!(copy(features), featurenames)
+function dropfeatures!(features::Features, featurenames::AbstractVector{String})
+    for name in featurenames
+        i = findfirst(features.names, name)
+        if i == 0
+            throw(ArgumentError("not found feature '$(name)'"))
+        end
+        features.selected[i] = false
+    end
+    return features
+end
+
+"""
+    selectfeatures(counts, featurenames; n_min_features=cld(size(counts, 1), 10))
+
+Select features from `counts`.
+
+Arguments
+---------
+
+- `counts`: transcriptome expression matrix (features x cells).
+- `featurenames`: vector of feature names.
+- `n_min_features`: number of minimum features [default: 10% of all features].
+"""
+function selectfeatures(counts::AbstractMatrix,
+                        featurenames::AbstractVector{String};
+                        n_min_features::Real=cld(size(counts, 1), 10))
+    M = size(counts, 1)
+    if M != length(featurenames)
+        throw(ArgumentError("mismatching featurenames size"))
+    elseif !(1 ≤ n_min_features ≤ M)
+        throw(ArgumentError("invalid n_min_features"))
+    end
+    maxcounts = vec(maximum(counts, dims=2))
+    mincounts = vec(minimum(counts, dims=2))
+    lowerbound = sort(maxcounts, rev=true)[n_min_features]
+    return Features(featurenames, (maxcounts .≥ lowerbound) .& (maxcounts .> mincounts))
+end
+
+
 # CellIndex
 # ---------
 
@@ -413,65 +480,59 @@ nbits(index::CellIndex) = bitsof(bitvectype(index.lshashes[1]))
 ncells(index::CellIndex) = length(index.lshashes[1].hammingindex)
 
 """
-    CellIndex{T}(Y; <keyword arguments>...)
+    CellIndex{T}(counts, features; <keyword arguments>...)
 
-Create a cell index from a count matrix `Y`.
+Create a cell index from a count matrix `counts` using `features`.
 
 Arguments
 ---------
 
-- `Y`: transcriptome expression matrix (gs x cells) [required].
-- `featurenames`: feature names [required].
+- `counts`: transcriptome expression matrix (features x cells) [required].
+- `features`: features used to compare expression profiles [required].
 - `metadata`: arbitrary metadata.
 - `n_bits=128`: the number of bits (64, 128, 256, 512, or 1024).
 - `n_lshashes=4`: the number of locality-sensitive hashes.
+- `superbit=min(n_dims, n_bits)`: the depth of super-bits.
 - `index=true`: to create bit index(es) or not.
-- `n_min_features=cld(size(Y, 1), 10)`: the minimum number of features.
-- `dropprob=0`: the probability of dropping gs.
+- `dropprob=0`: the probability of dropping features.
 - `scalefactor=1.0e4`: the scale factor of library sizes.
 - `n_dims=50`: the number of dimensions after PCA.
-- `superbit=min(n_dims, n_bits)`: the depth of super-bits.
 - `transformer=:log1p`: the variance-stabilizing transformer (`:log1p` or `:ftt`).
 - `randomize=true`: to use randomized SVD or not.
 - `normalize=true`: to normalize library sizes or not.
-- `standardize=true`: to standardize gs or not.
+- `standardize=true`: to standardize features or not.
 """
-function CellIndex(Y::AbstractMatrix;
+function CellIndex(counts::AbstractMatrix{<:Real},
+                   features::Features;
                    # additional data
                    featurenames=nothing,
                    metadata=nothing,
                    # parameters for LSH
                    n_bits::Integer=128,
                    n_lshashes::Integer=4,
+                   superbit::Integer=min(n_dims, n_bits),
                    index::Bool=true,
                    # parameters for preprocessing
-                   n_min_features::Integer=cld(size(Y, 1), 10),
                    dropprob::Real=0,
                    scalefactor::Real=1.0e4,
                    n_dims::Integer=50,
-                   superbit::Integer=min(n_dims, n_bits),
                    transformer::Symbol=:log1p,
                    randomize::Bool=true,
                    normalize::Bool=true,
                    standardize::Bool=true)
     # check arguments
-    M, N = size(Y)
-    if !(eltype(Y) <: Real)
-        throw(ArgumentError("invalid expression matrix"))
+    M, N = size(counts)
+    if nfeatures(features) != M
+        throw(ArgumentError("mismatching features size"))
     end
-    if featurenames == nothing
-        throw(ArgumentError("featurenames is missing"))
-    elseif !(featurenames isa AbstractVector) || length(featurenames) != M
-        throw(ArgumentError("invalid featurenames"))
-    end
-    if n_bits ∉ (64, 128, 256, 512, 1024)
-        throw(ArgumentError("invalid n_bits"))
-    end
-    if !(1 ≤ n_min_features ≤ M)
-        throw(ArgumentError("invalid n_min_features"))
+    if nselected(features) == 0
+        throw(ArgumentError("no selected features"))
     end
     if !(1 ≤ n_dims ≤ M)
         throw(ArgumentError("invalid n_dims"))
+    end
+    if n_bits ∉ (64, 128, 256, 512, 1024)
+        throw(ArgumentError("invalid n_bits"))
     end
     if !(1 ≤ superbit ≤ min(n_dims, n_bits))
         throw(ArgumentError("invalid superbit"))
@@ -489,11 +550,8 @@ function CellIndex(Y::AbstractMatrix;
         throw(ArgumentError("invalid transformer"))
     end
     # filter genes
-    minmaxcount = select_minmaxcount(Y, n_min_features)
-    @d println("# minmaxcount: $(minmaxcount)")
-    keep = filter_by_maximum(minmaxcount)(Y)
-    @d println("# features: $(size(Y, 1)) (kept: $(sum(keep)), dropped: $(sum(.~keep)))")
-    Y = ExpressionMatrix(convert(Matrix{Float32}, Matrix(Y[keep,:])), featurenames[keep])
+    featurenames = selectedfeatures(features)
+    Y = ExpressionMatrix(convert(Matrix{Float32}, Matrix(counts[features.selected,:])), featurenames)
     # make cell sketches
     T = n_bits ==   64 ? BitVec64   :
         n_bits ==  128 ? BitVec128  :
@@ -526,14 +584,6 @@ function CellIndex(Y::AbstractMatrix;
     end
     # create a cell index
     return CellIndex(featurenames, metadata, lshashes, RuntimeStats())
-end
-
-function select_minmaxcount(Y::AbstractMatrix, n::Integer)
-    if size(Y, 1) ≤ n
-        return Int(0)
-    end
-    x = sort!(vec(maximum(Y, dims=2)), rev=true)
-    return Int(x[n])
 end
 
 function save(filename::AbstractString, index::CellIndex)

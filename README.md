@@ -10,11 +10,12 @@ using CSV
 # Load expression profiles of database cells.
 data = CSV.read("database.txt", delim='\t')
 cellnames = string.(names(data))
-features = string.(data[:,1])
+featurenames = string.(data[:,1])
 counts = Matrix{Float32}(data[:,2:end])
 
-# Create an index (or a database).
-index = CellFishing.CellIndex(counts, featurenames=features, metadata=cellnames)
+# Select features and create an index (or a database).
+selected = CellFishing.selectfeatures(counts, featurenames)
+index = CellFishing.CellIndex(counts, selected, metadata=cellnames)
 
 # Save/load the database to/from a file (optional).
 # CellFishing.save("database.cf", index)
@@ -24,12 +25,12 @@ index = CellFishing.CellIndex(counts, featurenames=features, metadata=cellnames)
 # Load expression profiles of query cells.
 data = CSV.read("query.txt", delim='\t')
 cellnames = string.(names(data))
-features = string.(data[:,1])
+featurenames = string.(data[:,1])
 counts = Matrix{Float32}(data[:,2:end])
 
 # Search the database for similar cells.
 k = 10
-neighbors = CellFishing.findknn(k, counts, features, index)
+neighbors = CellFishing.findknn(k, counts, featurenames, index)
 
 # Write the neighboring cells to a file.
 open("neighbors.tsv", "w") do file

@@ -89,18 +89,17 @@ end
 @testset "CellIndex" begin
     srand(1234)
     m = 100
-    Y = convert(Matrix{Int32}, rand(0:1000, m, 200))
+    counts = convert(Matrix{Int32}, rand(0:1000, m, 200))
     featurenames = [string("feature:", i) for i in 1:m]
+    features = CellFishing.selectfeatures(counts, featurenames, n_min_features=m)
     index = CellFishing.CellIndex(
-        Y,
-        featurenames=featurenames,
-        n_min_features=length(featurenames),
-        metadata=[string("cell:", j) for j in 1:size(Y, 2)])
+        counts, features,
+        metadata=[string("cell:", j) for j in 1:size(counts, 2)])
     @test CellFishing.nbits(index) == 128
     @test CellFishing.ncells(index) == 200
     @test index.featurenames[1] == "feature:1"
     @test index.metadata[1] == "cell:1"
-    @test_throws ArgumentError CellFishing.CellIndex(Y, featurenames=["feature:1"])
+    #@test_throws ArgumentError CellFishing.CellIndex(counts, featurenames=["feature:1"])
     @test contains(sprint(show, index), "CellIndex")
     mktempdir() do tmpdir
         tmpfile = joinpath(tmpdir, "index")
@@ -114,34 +113,32 @@ end
 
     srand(1234)
     m = 100
-    Y = convert(Matrix{Int32}, rand(0:1000, m, 200))
+    counts = convert(Matrix{Int32}, rand(0:1000, m, 200))
     featurenames = [string("feature:", i) for i in 1:m]
     n = 0
     ok = 0
-    for n_bits in [64, 128, 256, 512, 1024]
-        for n_dims in [64, m],
-            superbit in [1, 8, 17],
-            randomize in false:true,
-            normalize in false:true,
-            standardize in false:true,
-            index in false:true
-            idx = CellFishing.CellIndex(
-                Y,
-                featurenames=featurenames,
-                n_bits=n_bits,
-                n_min_features=length(featurenames),
-                n_dims=n_dims, superbit=superbit, randomize=randomize,
-                normalize=normalize, standardize=standardize,
-                index=index)
-            perm = shuffle(1:m)
-            U = CellFishing.findknn(1, CellFishing.ExpressionMatrix(Y[perm,1:10], featurenames[perm]), idx)
-            for i in 1:10
-                j = U.indexes[1,i]
-                dist = U.hammingdistances[1,i]
-                @test dist == 0
-                n += 1
-                ok += i == j
-            end
+    for n_bits in [64, 128, 256, 512, 1024],
+        superbit in [1, 8, 17],
+        n_dims in [64, m],
+        randomize in false:true,
+        normalize in false:true,
+        standardize in false:true,
+        index in false:true
+        features = CellFishing.selectfeatures(counts, featurenames, n_min_features=m)
+        idx = CellFishing.CellIndex(
+            counts, features,
+            n_bits=n_bits, superbit=superbit,
+            n_dims=n_dims, randomize=randomize,
+            normalize=normalize, standardize=standardize,
+            index=index)
+        perm = shuffle(1:m)
+        U = CellFishing.findknn(1, CellFishing.ExpressionMatrix(counts[perm,1:10], featurenames[perm]), idx)
+        for i in 1:10
+            j = U.indexes[1,i]
+            dist = U.hammingdistances[1,i]
+            @test dist == 0
+            n += 1
+            ok += i == j
         end
     end
     println("$(ok) / $(n) = $(ok/n)")
