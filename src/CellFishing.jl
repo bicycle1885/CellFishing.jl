@@ -256,7 +256,7 @@ function preprocess(proc::Preprocessor, Y::Matrix{Float32})
     return reducedims(proc.dimreducer, Y)
 end
 
-function preprocess_shared(proc::Preprocessor, Y::ExpressionMatrix)
+function preprocess_shared(proc::Preprocessor, Y::ExpressionMatrix, inferparams::Bool)
     perm = zeros(Int, length(proc.featurenames))
     for (i, feature) in enumerate(proc.featurenames)
         perm[i] = Y.featuremap[feature]
@@ -266,12 +266,22 @@ function preprocess_shared(proc::Preprocessor, Y::ExpressionMatrix)
         X .*= proc.scalefactor ./ sum(X, dims=1)
     end
     transform!(proc.transformer, X)
+    μ = inferparams ? vec(mean(X, dims=2)) : proc.mean
     if proc.standardize
+        if inferparams
+            σ = vec(std(X, dims=2))
+            for i in 1:length(σ)
+                σ[i] = ifelse(σ[i] > 0, σ[i], proc.invstd[i])
+            end
+            invstd = inv.(σ)
+        else
+            invstd = proc.invstd
+        end
         @inbounds for j in 1:size(X, 2), i in 1:size(X, 1)
-            X[i,j] = (X[i,j] - proc.mean[i]) * proc.invstd[i]
+            X[i,j] = (X[i,j] - μ[i]) * invstd[i]
         end
     else
-        X .-= proc.mean
+        X .-= μ
     end
     return X
 end
@@ -625,11 +635,11 @@ end
 
 Find `k`-nearest neighboring cells from `index`.
 """
-function findneighbors(k::Integer, counts::AbstractMatrix, featurenames::Vector{String}, index::CellIndex)
-    return findneighbors(k, ExpressionMatrix(counts, featurenames), index)
+function findneighbors(k::Integer, counts::AbstractMatrix, featurenames::Vector{String}, index::CellIndex; inferparams::Bool=false)
+    return findneighbors(k, ExpressionMatrix(counts, featurenames), index; inferparams=inferparams)
 end
 
-function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex)
+function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex; inferparams::Bool=false)
     if k < 0
         throw(ArgumentError("negative k"))
     end
@@ -641,7 +651,7 @@ function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex)
     rtstats = index.rtstats
     tic!(rtstats)
     # apply shared preprocessing
-    X = preprocess_shared(index.lshashes[1].preprocessor, Y)
+    X = preprocess_shared(index.lshashes[1].preprocessor, Y, inferparams)
     # allocate temporary memories
     neighbors = Matrix{Int}(k * L, N)
     neighbors_tmp = Matrix{Int}(k, N)

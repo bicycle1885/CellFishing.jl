@@ -150,7 +150,8 @@ end
             normalize=normalize, standardize=standardize,
             index=index)
         perm = shuffle(1:m)
-        U = CellFishing.findneighbors(1, CellFishing.ExpressionMatrix(counts[perm,1:10], featurenames[perm]), idx)
+        #U = CellFishing.findneighbors(1, CellFishing.ExpressionMatrix(counts[perm,1:10], featurenames[perm]), idx)
+        U = CellFishing.findneighbors(1, CellFishing.ExpressionMatrix(counts[perm,1:10], featurenames[perm]), idx; inferparams=true)
         for i in 1:10
             j = U.indexes[1,i]
             dist = U.hammingdistances[1,i]
