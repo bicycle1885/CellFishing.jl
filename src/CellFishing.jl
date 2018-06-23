@@ -482,11 +482,6 @@ Arguments
 
 - `counts`: transcriptome expression matrix (features x cells) [required].
 - `features`: features used to compare expression profiles [required].
-- `metadata`: arbitrary metadata.
-- `n_bits=128`: the number of bits (64, 128, 256, 512, or 1024).
-- `n_lshashes=4`: the number of locality-sensitive hashes.
-- `superbit=min(n_dims, n_bits)`: the depth of super-bits.
-- `index=true`: to create bit index(es) or not.
 - `dropprob=0`: the probability of dropping features.
 - `scalefactor=1.0e4`: the scale factor of library sizes.
 - `n_dims=50`: the number of dimensions after PCA.
@@ -494,25 +489,32 @@ Arguments
 - `randomize=true`: to use randomized SVD or not.
 - `normalize=true`: to normalize library sizes or not.
 - `standardize=true`: to standardize features or not.
+- `metadata`: arbitrary metadata.
+- `n_bits=128`: the number of bits (64, 128, 256, 512, or 1024).
+- `n_lshashes=4`: the number of locality-sensitive hashes.
+- `superbit=min(n_dims, n_bits)`: the depth of super-bits.
+- `index=true`: to create bit index(es) or not.
 """
-function CellIndex(counts::AbstractMatrix{<:Real},
-                   features::Features;
-                   # additional data
-                   featurenames=nothing,
-                   metadata=nothing,
-                   # parameters for LSH
-                   n_bits::Integer=128,
-                   n_lshashes::Integer=4,
-                   superbit::Integer=min(n_dims, n_bits),
-                   index::Bool=true,
-                   # parameters for preprocessing
-                   dropprob::Real=0,
-                   scalefactor::Real=1.0e4,
-                   n_dims::Integer=50,
-                   transformer::Symbol=:log1p,
-                   randomize::Bool=true,
-                   normalize::Bool=true,
-                   standardize::Bool=true)
+function CellIndex(
+        # required arguments
+        counts::AbstractMatrix{<:Real},
+        features::Features;
+        # additional data
+        featurenames=nothing,
+        metadata=nothing,
+        # parameters for preprocessing
+        dropprob::Real=0,
+        scalefactor::Real=1.0e4,
+        n_dims::Integer=50,
+        transformer::Symbol=:log1p,
+        randomize::Bool=true,
+        normalize::Bool=true,
+        standardize::Bool=true,
+        # parameters for LSH
+        n_bits::Integer=128,
+        n_lshashes::Integer=4,
+        superbit::Integer=min(n_dims, n_bits),
+        index::Bool=true,)
     # check arguments
     M, N = size(counts)
     if nfeatures(features) != M
