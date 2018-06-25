@@ -5,7 +5,7 @@ using CodecZstd: ZstdDecompressorStream
 
 if VERSION > v"0.7-"
     using LinearAlgebra: lufact!, qrfact!
-    using IterativeEigensolvers: svds
+    using Arpack: svds
     using StatsBase: std
 else
     using Compat: undef, minimum, maximum, sum, mean, std
@@ -389,6 +389,17 @@ end
 # Feature Selection
 # -----------------
 
+"""
+A list of features.
+
+Fields
+------
+
+- `names`: feature names.
+- `selected`: a bit vector of selected features.
+
+`names` and `selected` must have the same number of elements.
+"""
 struct Features
     names::Vector{String}
     selected::BitVector
@@ -401,6 +412,16 @@ struct Features
     end
 end
 
+"""
+    Features(names)
+
+Create a features object from feature names `names`.
+
+All features are not selected by default. To select and unselect some features,
+use `addfeatures!` and `dropfeatures!`, respectively.
+
+`selectfeatures` algorithmically selects important features from a count matrix.
+"""
 Features(names::AbstractVector{String}) = Features(names, falses(length(names)))
 
 Base.copy(features::Features) = Features(copy(features.names), copy(features.selected))
@@ -413,7 +434,22 @@ nfeatures(features::Features) = length(features.names)
 nselected(features::Features) = sum(features.selected)
 selectedfeatures(features::Features) = features.names[features.selected]
 
+"""
+    addfeatures(features, names) -> Features
+
+Create a new features object by adding `names` to `features`.
+
+See also `dropfeatures` and `addfeatures!`.
+"""
 addfeatures(features::Features, featurenames::AbstractVector{String}) = addfeatures!(copy(features), featurenames)
+
+"""
+    addfeatures!(features, names) -> Features
+
+Add `names` to `features` in place.
+
+See also `dropfeatures!` and `addfeatures`.
+"""
 function addfeatures!(features::Features, featurenames::AbstractVector{String})
     for name in featurenames
         i = findfirst(features.names, name)
@@ -425,7 +461,23 @@ function addfeatures!(features::Features, featurenames::AbstractVector{String})
     return features
 end
 
+"""
+    dropfeatures(features, names) -> Features
+
+Create a new features object by dropping `names` from `features`.
+
+See also `addfeatures` and `dropfeatures!`.
+"""
 dropfeatures(features::Features, featurenames::AbstractVector{String}) = dropfeatures!(copy(features), featurenames)
+
+
+"""
+    dropfeatures!(features, names) -> Features
+
+Drop `names` from `features` in place.
+
+See also `addfeatures!` and `dropfeatures`.
+"""
 function dropfeatures!(features::Features, featurenames::AbstractVector{String})
     for name in featurenames
         i = findfirst(features.names, name)
@@ -438,7 +490,7 @@ function dropfeatures!(features::Features, featurenames::AbstractVector{String})
 end
 
 """
-    selectfeatures(counts, featurenames; n_min_features=cld(size(counts, 1), 10))
+    selectfeatures(counts, featurenames; n_min_features=cld(size(counts, 1), 10)) -> Features
 
 Select features from `counts`.
 
@@ -631,11 +683,27 @@ struct NearestCells
 end
 
 """
-    findneighbors(k::Integer, counts::AbstractMatrix, featurenames::Vector{String}, index::CellIndex) -> NearestCells
+    findneighbors(
+        k::Integer,
+        counts::AbstractMatrix,
+        featurenames::AbstractVector{String},
+        index::CellIndex;
+        inferparams::Bool=false
+    ) -> NearestCells
 
 Find `k`-nearest neighboring cells from `index`.
+
+If `inferparams=true`, feature (gene) parameters are inferred from the `counts`
+argument, which will have meaningful effects on the search result when `index`
+and `counts` are derived from very different protocols. Note that `counts`
+should not be biased and have enough cells to properly infer the parameters.
 """
-function findneighbors(k::Integer, counts::AbstractMatrix, featurenames::Vector{String}, index::CellIndex; inferparams::Bool=false)
+function findneighbors(
+        k::Integer,
+        counts::AbstractMatrix,
+        featurenames::AbstractVector{String},
+        index::CellIndex;
+        inferparams::Bool=false)
     return findneighbors(k, ExpressionMatrix(counts, featurenames), index; inferparams=inferparams)
 end
 
