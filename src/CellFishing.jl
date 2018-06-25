@@ -157,13 +157,13 @@ function preprocess_shared(
     end
     # apply variance-stabilizing transformation
     transform!(transformer, X)
-    # standardize genes
+    # standardize features
     μ = vec(mean(X, dims=2))
     X .-= μ
     if standardize
         σ = vec(std(X, dims=2))
         if any(σ .== 0)
-            throw(ArgumentError("found $(sum(σ .== 0)) genes with no variance; filter genes first"))
+            throw(ArgumentError("found $(sum(σ .== 0)) features with no variance; filter out these features"))
         end
         invstd = inv.(σ)
         X .*= invstd
@@ -171,52 +171,6 @@ function preprocess_shared(
     else
         return X, μ, Float32[]
     end
-end
-
-function make_preprocessor(
-        Y::ExpressionMatrix,
-        transformer::Union{LogT,FTT},
-        dimreducer::PCA,
-        normalize::Bool,
-        standardize::Bool,
-        dropprob::Float32,
-        scalefactor::Float32)
-    @assert Y.data isa Matrix{Float32}  # must be a dense matrix
-    X, mean, invstd, drop = _preprocess!(copy(Y.data), normalize, scalefactor, transformer, dimreducer, standardize, dropprob)
-    return X, Preprocessor(Y.featurenames, transformer, dimreducer, normalize, standardize, scalefactor, mean, invstd, drop)
-end
-
-function _preprocess!(
-        X::Matrix{Float32},
-        normalize, scalefactor,
-        transformer, dimreducer,
-        standardize, dropprob)
-    # normalize cell counts
-    if normalize
-        X .*= scalefactor ./ sum(X, dims=1)
-    end
-    # variance-stable transformation
-    transform!(transformer, X)
-    # standardize genes
-    m = vec(mean(X, dims=2))
-    X .-= m
-    if standardize
-        s = vec(std(X, dims=2))
-        if any(s .== 0)
-            throw(ArgumentError("found genes with no variance; filter genes first"))
-        end
-        invstd = inv.(s)
-        X .*= invstd
-    else
-        s = invstd = Float32[]
-    end
-    # random g (gene) drop
-    drop = zeros(Float32, size(X, 1))
-    drop[rand(size(X, 1)) .≥ dropprob] = 1
-    X .*= drop
-    fit!(dimreducer, X)
-    X = reducedims(dimreducer, X)
-    return X, m, invstd, drop
 end
 
 permuterows(perm::Vector{Int}, Y::AbstractMatrix) = convert(Matrix{Float32}, Y[perm,:])
@@ -606,7 +560,7 @@ function CellIndex(
     if transformer ∉ (:log1p, :ftt)
         throw(ArgumentError("invalid transformer"))
     end
-    # filter genes
+    # filter features
     featurenames = selectedfeatures(features)
     Y = ExpressionMatrix(convert(Matrix{Float32}, Matrix(counts[features.selected,:])), featurenames)
     # make cell sketches
@@ -625,7 +579,7 @@ function CellIndex(
     X, mean, invstd = preprocess_shared(Y, transformer, normalize, standardize, Float32(scalefactor))
     lshashes = LSHash{T}[]
     for _ in 1:n_lshashes
-        # random g (gene) drop
+        # random feature (gene) drop
         drop = zeros(Float32, size(X, 1))
         drop[rand(size(X, 1)) .≥ dropprob] .= 1.0
         X .*= drop
