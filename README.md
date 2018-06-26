@@ -1,6 +1,6 @@
 # CellFishing.jl ꙮ 🎣
 
-CellFishing.jl (**cell** **fi**nder by ha**shing**) is a tool to find similar cells of query cells based on their transcriptome expression profiles.
+CellFishing.jl (**cell** **fi**nder via ha**shing**) is a tool to find similar cells of query cells based on their transcriptome expression profiles.
 
 ```julia
 # Import packages.
@@ -43,4 +43,10 @@ open("neighbors.tsv", "w") do file
         println(file)
     end
 end
+```
+
+## Installation
+
+```
+$ julia -e 'Pkg.clone("https://github.com/bicycle1885/CellFishing.jl")'
 ```

@@ -1,0 +1,3 @@
+julia 0.6
+CodecZlib 0.4
+CodecZstd 0.4
