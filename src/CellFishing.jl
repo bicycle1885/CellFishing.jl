@@ -28,7 +28,7 @@ const bitsof = HammingIndexes.bitsof
 const prefetch = HammingIndexes.prefetch
 
 # Compute Hamming distance between x and y.
-hammdist(x::T, y::T) where {T<:BitVec} = count_ones(xor(x, y))
+hammdist(x::T, y::T) where {T<:BitVec} = count_ones(x ⊻ y)
 
 # Compute approximated angle between x and y.
 approxangle(x::T, y::T) where {T<:BitVec} = hammdist(x, y) * Float32(pi) / bitsof(T)

@@ -345,7 +345,7 @@ struct LinearSearch end
 function findwithin(::LinearSearch, r::Int, q::T, index::HammingIndex{T}) where {T}
     results = Int[]
     @inbounds for i in 1:length(index.data)
-        if count_ones(xor(q, index.data[i])) ≤ r
+        if count_ones(q ⊻ index.data[i]) ≤ r
             push!(results, i)
         end
     end
@@ -367,7 +367,7 @@ function findknn!(::LinearSearch, nns::NearestNeighbors, q::T, index::HammingInd
         @goto finish
     end
     @inbounds for i in 1:length(index.data)
-        d = count_ones(xor(q, index.data[i]))
+        d = count_ones(q ⊻ index.data[i])
         if d < nns.distances[end]
             nns.indexes[end] = i
             nns.distances[end] = d
@@ -414,7 +414,7 @@ function findwithin(::MultiIndexSearch, r::Int, q::T, index::HammingIndex{T}) wh
     for k in 1:length(results)
         i = results[k]
         if i != prev
-            if count_ones(xor(q, index.data[i])) ≤ r
+            if count_ones(q ⊻ index.data[i]) ≤ r
                 n += 1
                 results[n] = prev = i
             end
@@ -457,7 +457,7 @@ function findknn!(::MultiIndexSearch, nns::NearestNeighbors, q::T, index::Hammin
                 prefetch(pointer(data, buckets[start+l+8]))
                 i = buckets[start+l]
                 p = data[i]
-                d = count_ones(xor(q, p))
+                d = count_ones(q ⊻ p)
                 n_compared += 1
                 if d < d_max
                     for j in searchsorted(nns.distances, d)
