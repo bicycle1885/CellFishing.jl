@@ -136,7 +136,7 @@ end
     all = ok = 0
     for n_bits in [64, 128, 256, 512],
         superbit in [1, 8, 17],
-        n_dims in [64, m],
+        n_dims in [64, m-1],
         randomize in false:true,
         normalize in false:true,
         standardize in false:true,

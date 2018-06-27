@@ -1,6 +1,8 @@
 module HammingIndexes
 
-using Compat: undef, copyto!, Nothing
+if VERSION < v"0.7-"
+    using Compat: undef, copyto!, Nothing
+end
 
 
 # Simple List

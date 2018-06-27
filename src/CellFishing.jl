@@ -4,11 +4,29 @@ using CodecZlib: GzipDecompressorStream
 using CodecZstd: ZstdDecompressorStream
 
 if VERSION > v"0.7-"
-    using LinearAlgebra: lufact!, qrfact!
+    using LinearAlgebra: lu!, qr!, svd
     using Arpack: svds
     using StatsBase: std
+    using Serialization: serialize, deserialize
+    macro f(ex) esc(ex) end
 else
     using Compat: undef, minimum, maximum, sum, mean, std
+    const lu! = lufact!
+    const qr! = qrfact!
+    macro f(ex)
+        function rec(ex)
+            if ex isa Expr
+                if ex.head == :.
+                    Expr(:ref, rec(ex.args[1]), ex.args[2])
+                else
+                    Expr(ex.head, rec.(ex.args)...)
+                end
+            else
+                ex
+            end
+        end
+        esc(rec(ex))
+    end
 end
 
 const DEBUG = Ref(false)
@@ -121,7 +139,7 @@ function fit!(pca::PCA, X::AbstractMatrix)
     end
     return pca
 end
-reducedims(pca::PCA, X::AbstractMatrix) = At_mul_B(pca.proj, X)
+reducedims(pca::PCA, X::AbstractMatrix) = pca.proj'X
 
 
 # Preprocessor
@@ -330,11 +348,11 @@ function generate_random_projections(K::Integer, D::Integer, superbit::Integer)
     for _ in 1:q
         # generate an orthogonal random matrix.
         M = randn(Float32, D, superbit)
-        push!(Ps, Matrix(qrfact!(M)[:Q])')
+        push!(Ps, Matrix(@f qr!(M).Q)')
     end
     if r > 0
         M = randn(Float32, D, r)
-        push!(Ps, Matrix(qrfact!(M)[:Q])')
+        push!(Ps, Matrix(@f qr!(M).Q)')
     end
     return vcat(Ps...)
 end
@@ -691,10 +709,10 @@ function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex; inferp
     # apply shared preprocessing
     X = preprocess_shared(index.lshashes[1].preprocessor, Y, inferparams)
     # allocate temporary memories
-    neighbors = Matrix{Int}(k * L, N)
-    neighbors_tmp = Matrix{Int}(k, N)
-    Z = Matrix{T}(L, N)
-    Z_tmp = Vector{T}(N)
+    neighbors = Matrix{Int}(undef, k * L, N)
+    neighbors_tmp = Matrix{Int}(undef, k, N)
+    Z = Matrix{T}(undef, L, N)
+    Z_tmp = Vector{T}(undef, N)
     for l in 1:L
         lshash = index.lshashes[l]
         X′ = preprocess_specific(lshash.preprocessor, X)

@@ -5,7 +5,11 @@
 function tsvd(A::Matrix{T}, k::Integer) where T
     m, n = size(A)
     F, = svds(A, nsv=k)
-    U, Σ, V = F[:U], F[:S], F[:V]
+    @static if VERSION > v"0.7-"
+        U, Σ, V = F.U, F.S, F.V
+    else
+        U, Σ, V = F[:U], F[:S], F[:V]
+    end
     @assert size(U, 2) == length(Σ) == size(V, 2) == k
     return U, Σ, V
 end
@@ -20,18 +24,18 @@ function rsvd(A::Matrix{T}, k::Integer; its=3, l=k+5) where T
     @assert 0 < k ≤ l ≤ min(m, n)
     Q::Matrix{T} = rand(eltype(T), n, l) .- T(0.5)
     Y = A*Q
-    F = lufact!(Y)
+    F = lu!(Y)
     for i in 1:its
-        Y = A'F[:L]
-        F = lufact!(Y)
-        Y = A*F[:L]
+        Y = @f A'F.L
+        F = lu!(Y)
+        Y = @f A*F.L
         if i < its
-            F = lufact!(Y)
+            F = lu!(Y)
         else
-            F = qrfact!(Y)
+            F = qr!(Y)
         end
     end
-    Q = Matrix(F[:Q])
+    Q = Matrix(@f F.Q)
     B = Q'A
     W, Σ, V = svd(B)
     U = Q*W
