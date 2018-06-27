@@ -597,11 +597,28 @@ function CellIndex(
     return CellIndex(featurenames, metadata, lshashes, RuntimeStats())
 end
 
+"""
+    save(filename::AbstractString, index::CellIndex)
+
+Save `index` to a file.
+
+See also `load`.
+"""
 function save(filename::AbstractString, index::CellIndex)
     open(io->serialize(io, index), filename, "w")
     return nothing
 end
 
+"""
+    load(filename::AbstractString)
+
+Load an index from `filename`.
+
+The file may be compressed with gzip or zstd; the compression format will be
+detected by the extension of the file.
+
+See also `save`.
+"""
 function load(filename::AbstractString)
     open(filename, "r") do file
         if endswith(filename, ".gz")
