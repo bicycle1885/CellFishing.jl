@@ -1,6 +1,7 @@
 # CellFishing.jl ꙮ 🎣
 
-CellFishing.jl (**cell** **fi**nder via ha**shing**) is a tool to find similar cells of query cells based on their transcriptome expression profiles.
+CellFishing.jl (**cell** **fi**nder via ha**shing**) is a tool to find similar
+cells of query cells based on their transcriptome expression profiles.
 
 ```julia
 # Import packages.
@@ -11,11 +12,11 @@ using CSV
 data = CSV.read("database.txt", delim='\t')
 cellnames = string.(names(data))
 featurenames = string.(data[:,1])
-counts = Matrix{Float32}(data[:,2:end])
+counts = Matrix(data[:,2:end])
 
 # Select features and create an index (or a database).
-selected = CellFishing.selectfeatures(counts, featurenames)
-index = CellFishing.CellIndex(counts, selected, metadata=cellnames)
+features = CellFishing.selectfeatures(counts, featurenames)
+index = CellFishing.CellIndex(counts, features, metadata=cellnames)
 
 # Save/load the database to/from a file (optional).
 # CellFishing.save("database.cf", index)
@@ -26,9 +27,9 @@ index = CellFishing.CellIndex(counts, selected, metadata=cellnames)
 data = CSV.read("query.txt", delim='\t')
 cellnames = string.(names(data))
 featurenames = string.(data[:,1])
-counts = Matrix{Float32}(data[:,2:end])
+counts = Matrix(data[:,2:end])
 
-# Search the database for similar cells.
+# Search the database for similar cells; k cells will be returned per query.
 k = 10
 neighbors = CellFishing.findneighbors(k, counts, featurenames, index)
 
