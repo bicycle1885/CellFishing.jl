@@ -506,7 +506,7 @@ Arguments
 - `normalize=true`: to normalize library sizes or not.
 - `standardize=true`: to standardize features or not.
 - `metadata`: arbitrary metadata.
-- `n_bits=128`: the number of bits (64, 128, 256, 512, or 1024).
+- `n_bits=128`: the number of bits (64, 128, 256, or 512).
 - `n_lshashes=4`: the number of locality-sensitive hashes.
 - `superbit=min(n_dims, n_bits)`: the depth of super-bits.
 - `index=true`: to create bit index(es) or not.
@@ -542,7 +542,7 @@ function CellIndex(
     if !(1 ≤ n_dims ≤ M)
         throw(ArgumentError("invalid n_dims"))
     end
-    if n_bits ∉ (64, 128, 256, 512, 1024)
+    if n_bits ∉ (64, 128, 256, 512)
         throw(ArgumentError("invalid n_bits"))
     end
     if !(1 ≤ superbit ≤ min(n_dims, n_bits))
@@ -564,11 +564,10 @@ function CellIndex(
     featurenames = selectedfeatures(features)
     Y = ExpressionMatrix(convert(Matrix{Float32}, Matrix(counts[features.selected,:])), featurenames)
     # make cell sketches
-    T = n_bits ==   64 ? BitVec64   :
-        n_bits ==  128 ? BitVec128  :
-        n_bits ==  256 ? BitVec256  :
-        n_bits ==  512 ? BitVec512  :
-        n_bits == 1024 ? BitVec1024 :
+    T = n_bits ==  64 ? BitVec64  :
+        n_bits == 128 ? BitVec128 :
+        n_bits == 256 ? BitVec256 :
+        n_bits == 512 ? BitVec512 :
         assert(false)
     if transformer == :log1p
         transformer = LogT(1.0f0)

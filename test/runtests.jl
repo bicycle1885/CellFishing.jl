@@ -11,11 +11,10 @@ const BitVec64   = CellFishing.BitVec64
 const BitVec128  = CellFishing.BitVec128
 const BitVec256  = CellFishing.BitVec256
 const BitVec512  = CellFishing.BitVec512
-const BitVec1024 = CellFishing.BitVec1024
 const HammingIndexes = CellFishing.HammingIndexes
 
 @testset "BitVectors" begin
-    for T in [BitVec64, BitVec128, BitVec256, BitVec512, BitVec1024]
+    for T in [BitVec64, BitVec128, BitVec256, BitVec512]
         @test T <: CellFishing.BitVec
         @test convert(T, 0) isa T
         @test T(0) isa T
@@ -135,7 +134,7 @@ end
     counts = rand(0:1000, m, n)
     featurenames = string.("feature:", 1:m)
     all = ok = 0
-    for n_bits in [64, 128, 256, 512, 1024],
+    for n_bits in [64, 128, 256, 512],
         superbit in [1, 8, 17],
         n_dims in [64, m],
         randomize in false:true,
