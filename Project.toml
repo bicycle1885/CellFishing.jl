@@ -1,4 +1,4 @@
-name = "CellFishing.jl"
+name = "CellFishing"
 uuid = "5ab3512e-c64d-48f6-b1c0-509c1121fdda"
 
 [deps]
