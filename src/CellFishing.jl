@@ -10,7 +10,7 @@ if VERSION > v"0.7-"
     using Serialization: serialize, deserialize
     macro f(ex) esc(ex) end
 else
-    using Compat: undef, minimum, maximum, sum, mean, std
+    using Compat: undef, minimum, maximum, sum, mean, std, findfirst
     const lu! = lufact!
     const qr! = qrfact!
     macro f(ex)
@@ -424,8 +424,8 @@ See also `dropfeatures!` and `addfeatures`.
 """
 function addfeatures!(features::Features, featurenames::AbstractVector{String})
     for name in featurenames
-        i = findfirst(features.names, name)
-        if i == 0
+        i = findfirst(isequal(name), features.names)
+        if i == nothing
             throw(ArgumentError("not found feature '$(name)'"))
         end
         features.selected[i] = true
@@ -452,8 +452,8 @@ See also `addfeatures!` and `dropfeatures`.
 """
 function dropfeatures!(features::Features, featurenames::AbstractVector{String})
     for name in featurenames
-        i = findfirst(features.names, name)
-        if i == 0
+        i = findfirst(isequal(name), features.names)
+        if i == nothing
             throw(ArgumentError("not found feature '$(name)'"))
         end
         features.selected[i] = false

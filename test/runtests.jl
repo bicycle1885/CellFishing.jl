@@ -5,6 +5,7 @@ if VERSION > v"0.7-"
     using Random
 else
     using Base.Test
+    using Compat: occursin
 end
 
 const BitVec64   = CellFishing.BitVec64
@@ -118,7 +119,7 @@ end
     @test CellFishing.ncells(index) == n
     @test index.featurenames[1] == "feature:1"
     @test index.metadata[1] == "cell:1"
-    @test contains(sprint(show, index), "CellIndex")
+    @test occursin("CellIndex", sprint(show, index))
     mktempdir() do tmpdir
         tmpfile = joinpath(tmpdir, "index")
         CellFishing.save(tmpfile, index)
