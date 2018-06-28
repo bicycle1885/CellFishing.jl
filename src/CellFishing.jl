@@ -606,11 +606,11 @@ function CellIndex(
         n_bits == 128 ? BitVec128 :
         n_bits == 256 ? BitVec256 :
         n_bits == 512 ? BitVec512 :
-        assert(false)
+        @assert(false)
     if transformer == :log1p
         transformer = LogT(1.0f0)
     else
-        assert(transformer == :ftt)
+        @assert(transformer == :ftt)
         transformer = FTT()
     end
     X, mean, invstd = preprocess_shared(Y, transformer, normalize, standardize, Float32(scalefactor))
