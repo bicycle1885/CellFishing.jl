@@ -8,6 +8,7 @@ if VERSION > v"0.7-"
     using Arpack: svds
     using StatsBase: std
     using Serialization: serialize, deserialize
+    using SparseArrays: SparseMatrixCSC
     macro f(ex) esc(ex) end
 else
     using Compat: undef, minimum, maximum, sum, mean, std, findfirst
@@ -482,10 +483,29 @@ function selectfeatures(counts::AbstractMatrix,
     elseif !(1 ≤ n_min_features ≤ M)
         throw(ArgumentError("invalid n_min_features"))
     end
-    maxcounts = vec(maximum(counts, dims=2))
-    mincounts = vec(minimum(counts, dims=2))
+    mincounts, maxcounts = feature_extrema(counts)
     lowerbound = sort(maxcounts, rev=true)[n_min_features]
     return Features(featurenames, (maxcounts .≥ lowerbound) .& (maxcounts .> mincounts))
+end
+
+function feature_extrema(counts::AbstractMatrix)
+    return vec(minimum(counts, dims=2)), vec(maximum(counts, dims=2))
+end
+
+# https://github.com/JuliaLang/julia/issues/27836
+function feature_extrema(counts::SparseMatrixCSC{T}) where T <: Real
+    m, n = size(counts)
+    mincounts = fill(typemax(T), m)
+    maxcounts = fill(typemin(T), m)
+    for col in 1:n
+        for j in counts.colptr[col]:counts.colptr[col+1]-1
+            i = counts.rowval[j]
+            val = counts.nzval[j]
+            mincounts[i] = min(val, mincounts[i])
+            maxcounts[i] = max(val, maxcounts[i])
+        end
+    end
+    return mincounts, maxcounts
 end
 
 

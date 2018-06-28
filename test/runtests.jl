@@ -3,6 +3,7 @@ include("../src/CellFishing.jl")
 if VERSION > v"0.7-"
     using Test
     using Random
+    using SparseArrays
 else
     using Base.Test
     using Compat: occursin
@@ -135,28 +136,30 @@ end
     counts = rand(0:1000, m, n)
     featurenames = string.("feature:", 1:m)
     all = ok = 0
-    for n_bits in [64, 128, 256, 512],
-        superbit in [1, 8, 17],
-        n_dims in [64, m-1],
-        randomize in false:true,
-        normalize in false:true,
-        standardize in false:true,
-        index in false:true
-        features = CellFishing.selectfeatures(counts, featurenames, n_min_features=m)
-        idx = CellFishing.CellIndex(
-            counts, features,
-            n_bits=n_bits, superbit=superbit,
-            n_dims=n_dims, randomize=randomize,
-            normalize=normalize, standardize=standardize,
-            index=index)
-        perm = shuffle(1:m)
-        U = CellFishing.findneighbors(1, CellFishing.ExpressionMatrix(counts[perm,1:10], featurenames[perm]), idx)
-        for i in 1:10
-            j = U.indexes[1,i]
-            dist = U.hammingdistances[1,i]
-            @test dist == 0
-            all += 1
-            ok += i == j
+    for MatType in [Matrix, SparseMatrixCSC]
+        for n_bits in [64, 128, 256, 512],
+            superbit in [1, 8, 17],
+            n_dims in [64, m-1],
+            randomize in false:true,
+            normalize in false:true,
+            standardize in false:true,
+            index in false:true
+            features = CellFishing.selectfeatures(MatType(counts), featurenames, n_min_features=m)
+            idx = CellFishing.CellIndex(
+                MatType(counts), features,
+                n_bits=n_bits, superbit=superbit,
+                n_dims=n_dims, randomize=randomize,
+                normalize=normalize, standardize=standardize,
+                index=index)
+            perm = shuffle(1:m)
+            U = CellFishing.findneighbors(1, CellFishing.ExpressionMatrix(MatType(counts)[perm,1:10], featurenames[perm]), idx)
+            for i in 1:10
+                j = U.indexes[1,i]
+                dist = U.hammingdistances[1,i]
+                @test dist == 0
+                all += 1
+                ok += i == j
+            end
         end
     end
     @test ok / all ≈ 1.0
