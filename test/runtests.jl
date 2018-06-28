@@ -9,14 +9,13 @@ else
     using Compat: occursin
 end
 
-const BitVec64   = CellFishing.BitVec64
-const BitVec128  = CellFishing.BitVec128
-const BitVec256  = CellFishing.BitVec256
-const BitVec512  = CellFishing.BitVec512
 const HammingIndexes = CellFishing.HammingIndexes
 
 @testset "BitVectors" begin
-    for T in [BitVec64, BitVec128, BitVec256, BitVec512]
+    for T in [CellFishing.BitVec64,
+              CellFishing.BitVec128,
+              CellFishing.BitVec256,
+              CellFishing.BitVec512]
         @test T <: CellFishing.BitVec
         @test convert(T, 0) isa T
         @test T(0) isa T
