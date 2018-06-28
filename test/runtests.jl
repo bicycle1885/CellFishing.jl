@@ -19,6 +19,7 @@ const HammingIndexes = CellFishing.HammingIndexes
         @test T <: CellFishing.BitVec
         @test convert(T, 0) isa T
         @test T(0) isa T
+        @test zero(T) === T(0)
         @test T(false) === T(0)
         @test T(true) === T(1)
         @test (T(0b0011) & T(0b0101)) === T(0b0001)

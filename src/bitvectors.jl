@@ -32,13 +32,16 @@ function Base.rand(mt::MersenneTwister, ::Type{T}) where {T<:BitVec}
 end
 
 for T in [BitVec64, BitVec128, BitVec256, BitVec512]
-    Base.:&(bv1::T, bv2::T) = and_int(bv1, bv2)
-    Base.:|(bv1::T, bv2::T) = or_int(bv1, bv2)
-    Base.:⊻(bv1::T, bv2::T) = xor_int(bv1, bv2)
-    Base.:<<(bv::T, n::BaseInts) = shl_int(bv, n)
-    Base.:>>(bv::T, n::BaseInts) = lshr_int(bv, n)
-    Base.getindex(bv::T, i::Integer) = trunc_int(Bool, bv >> (i - 1))
-    Base.rem(bv::T, ::Type{UInt32}) = trunc_int(UInt32, bv)
-    Base.rem(bv::T, ::Type{UInt64}) = trunc_int(UInt64, bv)
-    Base.count_ones(bv::T) = trunc_int(Int, ctpop_int(bv))
+    @eval begin
+        Base.zero(::Type{$T}) = convert($T, 0)
+        Base.:&(bv1::$T, bv2::$T) = and_int(bv1, bv2)
+        Base.:|(bv1::$T, bv2::$T) = or_int(bv1, bv2)
+        Base.:⊻(bv1::$T, bv2::$T) = xor_int(bv1, bv2)
+        Base.:<<(bv::$T, n::BaseInts) = shl_int(bv, n)
+        Base.:>>(bv::$T, n::BaseInts) = lshr_int(bv, n)
+        Base.getindex(bv::$T, i::Integer) = trunc_int(Bool, bv >> (i - 1))
+        Base.rem(bv::$T, ::Type{UInt32}) = trunc_int(UInt32, bv)
+        Base.rem(bv::$T, ::Type{UInt64}) = trunc_int(UInt64, bv)
+        Base.count_ones(bv::$T) = trunc_int(Int, ctpop_int(bv))
+    end
 end
