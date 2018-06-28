@@ -197,7 +197,7 @@ permuterows(perm::Vector{Int}, Y::AbstractMatrix) = convert(Matrix{Float32}, Y[p
 function permuterows(perm::Vector{Int}, Y::Matrix{Float32})
     m = length(perm)
     n = size(Y, 2)
-    Y_permuted = Matrix{Float32}(m, n)
+    Y_permuted = Matrix{Float32}(undef, m, n)
     @inbounds for j in 1:n
         L = 16
         col = (j-1) * size(Y, 1)
