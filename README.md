@@ -48,6 +48,29 @@ end
 
 ## Installation
 
-```
-$ julia -e 'Pkg.clone("https://github.com/bicycle1885/CellFishing.jl")'
-```
+First of all, you need to install a Julia compiler.  A recommended way to
+install Julia is downloading pre-built binaries. The pre-built binaries of Julia
+for several major platforms are distributed at
+<https://julialang.org/downloads/>.  Currently, CellFishing.jl supports Julia
+0.6 and 0.7 (beta). Then, install CellFishing.jl with the following command:
+
+    $ julia -e 'Pkg.clone("https://github.com/bicycle1885/CellFishing.jl")'
+
+To check the installation, you can try `using CellFishing` in your REPL:
+
+    $ julia
+                   _
+       _       _ _(_)_     |  A fresh approach to technical computing
+      (_)     | (_) (_)    |  Documentation: https://docs.julialang.org
+       _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
+      | | | | | | |/ _` |  |
+      | | |_| | | | (_| |  |  Version 0.7.0-beta.0 (2018-06-24 01:32 UTC)
+     _/ |\__'_|_|_|\__'_|  |  Official http://julialang.org/ release
+    |__/                   |  x86_64-apple-darwin14.5.0
+
+    julia> using CellFishing  # load the package
+
+    julia>
+
+
+No error messages mean you have successfully installed CellFishing.jl.
