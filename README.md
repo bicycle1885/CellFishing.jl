@@ -16,12 +16,12 @@ counts = Matrix(data[:,2:end])
 
 # Select features and create an index (or a database).
 features = CellFishing.selectfeatures(counts, featurenames)
-index = CellFishing.CellIndex(counts, features, metadata=cellnames)
+database = CellFishing.CellIndex(counts, features, metadata=cellnames)
 
 # Save/load the database to/from a file (optional).
-# CellFishing.save("database.cf", index)
-# run(`gzip database.cf`)
-# index = CellFishing.load("database.cf.gz")
+# CellFishing.save("database.cf", database)
+# run(`gzip database.cf`)  # or run(`zstd database.cf`)
+# database = CellFishing.load("database.cf.gz")
 
 # Load expression profiles of query cells.
 data = CSV.read("query.txt", delim='\t')
@@ -31,7 +31,7 @@ counts = Matrix(data[:,2:end])
 
 # Search the database for similar cells; k cells will be returned per query.
 k = 10
-neighbors = CellFishing.findneighbors(k, counts, featurenames, index)
+neighbors = CellFishing.findneighbors(k, counts, featurenames, database)
 
 # Write the neighboring cells to a file.
 open("neighbors.tsv", "w") do file
@@ -39,7 +39,7 @@ open("neighbors.tsv", "w") do file
     for j in 1:length(cellnames)
         print(file, cellnames[j])
         for i in 1:k
-            print(file, '\t', index.metadata[neighbors.indexes[i,j]])
+            print(file, '\t', database.metadata[neighbors.indexes[i,j]])
         end
         println(file)
     end
