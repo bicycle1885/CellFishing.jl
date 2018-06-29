@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+julia "$(dirname $BASH_SOURCE)/cellfishing.jl" "$@"
