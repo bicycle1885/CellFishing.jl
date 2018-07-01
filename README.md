@@ -74,3 +74,28 @@ To check the installation, you can try `using CellFishing` in your REPL:
 
 
 No error messages mean you have successfully installed CellFishing.jl.
+
+
+## Command-line interface (WIP)
+
+The bin/cellfishing script is a command-line interface to CellFishing.jl.
+
+    $ ./bin/cellfishing build Plass2018.dge.loom
+    Build a search database from Plass2018.dge.loom.
+      Loading data ―――――――――――― 13 seconds, 173 milliseconds
+      Selecting features ―――――― 1 second, 376 milliseconds
+      Creating a database ――――― 16 seconds, 418 milliseconds
+      Writing the database ―――― 659 milliseconds
+    The serialized database is in Plass2018.dge.loom.cf.
+    $ ./bin/cellfishing search Plass2018.dge.loom.cf Plass2018.dge.loom >neighbors.tsv
+    Search Plass2018.dge.loom.cf for 10 neighbors.
+      Loading the database ―――― 512 milliseconds
+      Loading query data ―――――― 12 seconds, 960 milliseconds
+      Searching the database ―― 31 seconds, 821 milliseconds
+      Writing neighbors ――――――― 64 milliseconds
+    $ head -5 neighbors.tsv | cut -f1-3
+    plan1_GACTTTCTCTTC      plan1_GACTTTCTCTTC      h2b_TTTTGCTACGGG
+    plan1_GTAAGGCGACAN      plan1_GTAAGGCGACAN      gfp_ATTCCTAGCGAT
+    plan1_TGGCCCAGCTGC      plan1_TGGCCCAGCTGC      plan1_GACTTTCTCTTC
+    plan1_CTCCTGTAATTT      plan1_CTCCTGTAATTT      plan1_ATCCTCCATTAA
+    plan1_ATGACGCATAAT      plan1_ATGACGCATAAT      plan1_TACTTGACGGTA
