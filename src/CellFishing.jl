@@ -31,13 +31,6 @@ else
     end
 end
 
-const DEBUG = Ref(false)
-macro d(ex)
-    quote
-        DEBUG[] && $(esc(ex))
-    end
-end
-
 include("svd.jl")
 include("bitvectors.jl")
 include("HammingIndexes.jl")
