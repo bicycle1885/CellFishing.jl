@@ -677,26 +677,25 @@ end
         counts::AbstractMatrix,
         featurenames::AbstractVector{String},
         index::CellIndex;
-        inferparams::Bool=false
+        inferparams::Bool=true
     ) -> NearestCells
 
 Find `k`-nearest neighboring cells from `index`.
 
 If `inferparams=true`, feature (gene) parameters are inferred from the `counts`
-argument, which will have meaningful effects on the search result when `index`
-and `counts` are derived from very different protocols. Note that `counts`
-should not be biased and have enough cells to properly infer the parameters.
+argument.  Note that `counts` should not be biased and have enough cells to
+properly infer the parameters.
 """
 function findneighbors(
         k::Integer,
         counts::AbstractMatrix,
         featurenames::AbstractVector{String},
         index::CellIndex;
-        inferparams::Bool=false)
+        inferparams::Bool=true)
     return findneighbors(k, ExpressionMatrix(counts, featurenames), index; inferparams=inferparams)
 end
 
-function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex; inferparams::Bool=false)
+function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex; inferparams::Bool=true)
     if k < 0
         throw(ArgumentError("negative k"))
     end
