@@ -137,7 +137,6 @@ struct Preprocessor
     scalefactor::Float32     # used for normalization
     mean::Vector{Float32}    # used for PCA
     invstd::Vector{Float32}  # used for standardization
-    drop::Vector{Float32}    # used for g dropping
 end
 
 indims(p::Preprocessor) = length(p.featurenames)
@@ -206,7 +205,6 @@ function preprocess(proc::Preprocessor, Y::Matrix{Float32})
     else
         Y .-= proc.mean
     end
-    Y .*= proc.drop
     return reducedims(proc.dimreducer, Y)
 end
 
@@ -241,7 +239,7 @@ function preprocess_shared(proc::Preprocessor, Y::ExpressionMatrix, inferparams:
 end
 
 function preprocess_specific(proc::Preprocessor, X::Matrix{Float32})
-    return reducedims(proc.dimreducer, X .* proc.drop)
+    return reducedims(proc.dimreducer, X)
 end
 
 
@@ -517,7 +515,6 @@ Arguments
 
 - `counts`: transcriptome expression matrix (features x cells) [required].
 - `features`: features used to compare expression profiles [required].
-- `dropprob=0`: the probability of dropping features.
 - `scalefactor=1.0e4`: the scale factor of library sizes.
 - `n_dims=50`: the number of dimensions after PCA.
 - `transformer=:log1p`: the variance-stabilizing transformer (`:log1p` or `:ftt`).
@@ -538,7 +535,6 @@ function CellIndex(
         featurenames=nothing,
         metadata=nothing,
         # parameters for preprocessing
-        dropprob::Real=0,
         scalefactor::Real=1.0e4,
         n_dims::Integer=50,
         transformer::Symbol=:log1p,
@@ -567,9 +563,6 @@ function CellIndex(
     if !(1 ≤ superbit ≤ min(n_dims, n_bits))
         throw(ArgumentError("invalid superbit"))
     end
-    if !(0 ≤ dropprob < 1)
-        throw(ArgumentError("invalid dropprob"))
-    end
     if !(scalefactor > 0)
         throw(ArgumentError("invalid scalefactor"))
     end
@@ -597,15 +590,11 @@ function CellIndex(
     X, mean, invstd = preprocess_shared(Y, transformer, normalize, standardize, Float32(scalefactor))
     lshashes = LSHash{T}[]
     for _ in 1:n_lshashes
-        # random feature (gene) drop
-        drop = zeros(Float32, size(X, 1))
-        drop[rand(size(X, 1)) .≥ dropprob] .= 1.0
-        X .*= drop
         # reduce dimensions
         dimreducer = PCA(n_dims, randomize=randomize)
         fit!(dimreducer, X)
         X′ = reducedims(dimreducer, X)
-        preproc = Preprocessor(Y.featurenames, transformer, dimreducer, normalize, standardize, scalefactor, mean, invstd, drop)
+        preproc = Preprocessor(Y.featurenames, transformer, dimreducer, normalize, standardize, scalefactor, mean, invstd)
         P = generate_random_projections(n_bits, n_dims, superbit)
         Z = Vector{T}(undef, size(X, 2))
         sketch!(Z, X′, P)
