@@ -139,12 +139,10 @@ struct Preprocessor
     invstd::Vector{Float32}  # used for standardization
 end
 
-indims(p::Preprocessor) = length(p.featurenames)
-outdims(p::Preprocessor) = p.dimreducer.dims
-
-function preprocess_shared(
+function Preprocessor(
         Y::ExpressionMatrix,
-        transformer::Union{LogT,FTT},
+        transformer,
+        dimreducer,
         normalize::Bool,
         standardize::Bool,
         scalefactor::Float32)
@@ -166,52 +164,25 @@ function preprocess_shared(
         end
         invstd = inv.(σ)
         X .*= invstd
-        return X, μ, invstd
     else
-        return X, μ, Float32[]
+        invstd = Float32[]
     end
+    # fit dimreducer
+    fit!(dimreducer, X)
+    return Preprocessor(
+        Y.featurenames,
+        transformer,
+        dimreducer,
+        normalize,
+        standardize,
+        scalefactor,
+        μ, invstd)
 end
 
-permuterows(perm::Vector{Int}, Y::AbstractMatrix) = convert(Matrix{Float32}, Y[perm,:])
-
-function permuterows(perm::Vector{Int}, Y::Matrix{Float32})
-    m = length(perm)
-    n = size(Y, 2)
-    Y_permuted = Matrix{Float32}(undef, m, n)
-    @inbounds for j in 1:n
-        L = 16
-        col = (j-1) * size(Y, 1)
-        for i in 1:m-L
-            prefetch(pointer(Y, perm[i+L] + col))
-            Y_permuted[i,j] = Y[perm[i] + col]
-        end
-        for i in m-L+1:m
-            Y_permuted[i,j] = Y[perm[i] + col]
-        end
-    end
-    return Y_permuted
-end
-
-function preprocess(proc::Preprocessor, Y::Matrix{Float32})
-    Y = copy(Y)
-    if proc.normalize
-        Y .*= proc.scalefactor ./ sum(Y, dims=1)
-    end
-    transform!(proc.transformer, Y)
-    if proc.standardize
-        @inbounds for j in 1:size(Y, 2), i in 1:size(Y, 1)
-            Y[i,j] = (Y[i,j] - proc.mean[i]) * proc.invstd[i]
-        end
-    else
-        Y .-= proc.mean
-    end
-    return reducedims(proc.dimreducer, Y)
-end
-
-function preprocess_shared(proc::Preprocessor, Y::ExpressionMatrix, inferparams::Bool)
+function preprocess(proc::Preprocessor, Y::ExpressionMatrix, inferparams::Bool)
     perm = zeros(Int, length(proc.featurenames))
-    for (i, feature) in enumerate(proc.featurenames)
-        perm[i] = Y.featuremap[feature]
+    for (i, name) in enumerate(proc.featurenames)
+        perm[i] = Y.featuremap[name]
     end
     X = permuterows(perm, Y.data)::Matrix{Float32}  # should be inferable
     if proc.normalize
@@ -235,11 +206,30 @@ function preprocess_shared(proc::Preprocessor, Y::ExpressionMatrix, inferparams:
     else
         X .-= μ
     end
-    return X
+    return reducedims(proc.dimreducer, X)
 end
 
-function preprocess_specific(proc::Preprocessor, X::Matrix{Float32})
-    return reducedims(proc.dimreducer, X)
+indims(p::Preprocessor) = length(p.featurenames)
+outdims(p::Preprocessor) = p.dimreducer.dims
+
+permuterows(perm::Vector{Int}, Y::AbstractMatrix) = convert(Matrix{Float32}, Y[perm,:])
+
+function permuterows(perm::Vector{Int}, Y::Matrix{Float32})
+    m = length(perm)
+    n = size(Y, 2)
+    Y_permuted = Matrix{Float32}(undef, m, n)
+    @inbounds for j in 1:n
+        L = 16
+        col = (j-1) * size(Y, 1)
+        for i in 1:m-L
+            prefetch(pointer(Y, perm[i+L] + col))
+            Y_permuted[i,j] = Y[perm[i] + col]
+        end
+        for i in m-L+1:m
+            Y_permuted[i,j] = Y[perm[i] + col]
+        end
+    end
+    return Y_permuted
 end
 
 
@@ -275,7 +265,6 @@ end
 # -----------------------
 
 struct LSHash{T<:BitVec}
-    preprocessor::Preprocessor
     projection::Matrix{Float32}
     hammingindex::HammingIndex{T}
 end
@@ -492,12 +481,12 @@ end
 # ---------
 
 struct CellIndex
-    # feature (gene) names
-    featurenames::Vector{String}
-    # any user-provided metadata (e.g. cellnames)
-    metadata::Any
+    # preprocessor
+    preproc::Preprocessor
     # locality-sensitive hashes
     lshashes::Vector{LSHash{T}} where T
+    # any user-provided metadata (e.g. cellnames)
+    metadata::Any
     # run-time statistics
     rtstats::RuntimeStats
 end
@@ -547,14 +536,14 @@ function CellIndex(
         superbit::Integer=min(n_dims, n_bits),
         index::Bool=true,)
     # check arguments
-    M, N = size(counts)
-    if nfeatures(features) != M
+    m, n = size(counts)
+    if nfeatures(features) != m
         throw(ArgumentError("mismatching features size"))
     end
     if nselected(features) == 0
         throw(ArgumentError("no selected features"))
     end
-    if !(1 ≤ n_dims ≤ M)
+    if !(1 ≤ n_dims ≤ m)
         throw(ArgumentError("invalid n_dims"))
     end
     if n_bits ∉ (64, 128, 256, 512)
@@ -587,21 +576,19 @@ function CellIndex(
         @assert(transformer == :ftt)
         transformer = FTT()
     end
-    X, mean, invstd = preprocess_shared(Y, transformer, normalize, standardize, Float32(scalefactor))
+    # preprocess expression profiles
+    preproc = Preprocessor(Y, transformer, PCA(n_dims, randomize=randomize), normalize, standardize, Float32(scalefactor))
+    X = preprocess(preproc, Y, false)
+    # hash preprocessed data
     lshashes = LSHash{T}[]
     for _ in 1:n_lshashes
-        # reduce dimensions
-        dimreducer = PCA(n_dims, randomize=randomize)
-        fit!(dimreducer, X)
-        X′ = reducedims(dimreducer, X)
-        preproc = Preprocessor(Y.featurenames, transformer, dimreducer, normalize, standardize, scalefactor, mean, invstd)
         P = generate_random_projections(n_bits, n_dims, superbit)
-        Z = Vector{T}(undef, size(X, 2))
-        sketch!(Z, X′, P)
-        push!(lshashes, LSHash(preproc, P, HammingIndex(Z, index=index)))
+        Z = Vector{T}(undef, n)
+        sketch!(Z, X, P)
+        push!(lshashes, LSHash(P, HammingIndex(Z, index=index)))
     end
     # create a cell index
-    return CellIndex(featurenames, metadata, lshashes, RuntimeStats())
+    return CellIndex(preproc, lshashes, metadata, RuntimeStats())
 end
 
 """
@@ -688,25 +675,22 @@ function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex; inferp
     if k < 0
         throw(ArgumentError("negative k"))
     end
-    N = size(Y, 2)
+    n = size(Y, 2)
     L = length(index.lshashes)
     T = bitvectype(first(index.lshashes))
     @assert L ≥ 1
-    featurenames = index.lshashes[1].preprocessor.featurenames
     rtstats = index.rtstats
     tic!(rtstats)
-    # apply shared preprocessing
-    X = preprocess_shared(index.lshashes[1].preprocessor, Y, inferparams)
+    # preprocess
+    X = preprocess(index.preproc, Y, inferparams)
     # allocate temporary memories
-    neighbors = Matrix{Int}(undef, k * L, N)
-    neighbors_tmp = Matrix{Int}(undef, k, N)
-    Z = Matrix{T}(undef, L, N)
-    Z_tmp = Vector{T}(undef, N)
+    neighbors = Matrix{Int}(undef, k * L, n)
+    neighbors_tmp = Matrix{Int}(undef, k, n)
+    Z = Matrix{T}(undef, L, n)
+    Z_tmp = Vector{T}(undef, n)
     for l in 1:L
-        lshash = index.lshashes[l]
-        X′ = preprocess_specific(lshash.preprocessor, X)
         rtstats.preproc_time += tic!(rtstats)
-        findneighbors!(neighbors_tmp, Z_tmp, X′, lshash)
+        findneighbors!(neighbors_tmp, Z_tmp, X, index.lshashes[l])
         neighbors[k*(l-1)+1:k*l,:] = neighbors_tmp
         Z[l,:] = Z_tmp
         rtstats.search_time += tic!(rtstats)
