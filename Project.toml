@@ -1,5 +1,6 @@
 name = "CellFishing"
 uuid = "5ab3512e-c64d-48f6-b1c0-509c1121fdda"
+version = "0.1.0"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
