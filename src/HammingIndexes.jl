@@ -23,6 +23,8 @@ Base.start(list::List) = 1
 Base.done(list::List, i::Int) = i > list.size
 Base.next(list::List, i::Int) = list.data[i], i + 1
 
+Base.getindex(list::List, i::Integer) = list.data[i]
+
 function Base.empty!(list::List)
     list.size = 0
     return list
@@ -443,6 +445,10 @@ function findknn!(::MultiIndexSearch, nns::NearestNeighbors, q::T, index::Hammin
     end
     # progressively search the Hamming space for k nearest neighbors
     ranges = List{UnitRange{Int32}}(128)
+    # temporary bucket that concatenates multiple buckets
+    N = 1024
+    tmp_bucket = Vector{Int32}(undef, N + 16)  # margin for prefetching
+    n_filled = 0
     m = length(index.subindexes)
     r = r′ = a = 0
     d_max = nns.distances[end]
@@ -451,13 +457,31 @@ function findknn!(::MultiIndexSearch, nns::NearestNeighbors, q::T, index::Hammin
         empty!(ranges)
         subindex = index.subindexes[a+1]
         findat!(ranges, r′, q_ap1, subindex)
-        for range in ranges
+        n = 1
+        @inbounds while n ≤ length(ranges) || n_filled > 0
+            if n ≤ length(ranges) && length(ranges[n]) ≤ min(64, N - n_filled)
+                range = ranges[n]
+                sz = length(range)
+                copyto!(tmp_bucket, n_filled+1, subindex.buckets, first(range), sz)
+                n += 1
+                n_filled += sz
+                continue
+            end
+            if N - n_filled < 64 || n > length(ranges)
+                bucket = tmp_bucket
+                start = 1
+                len = n_filled
+                n_filled = 0
+            else
+                bucket = subindex.buckets
+                start = Int(first(ranges[n]))
+                len = Int(length(ranges[n]))
+                n += 1
+            end
             data = index.data
-            buckets = subindex.buckets
-            start = first(range)
-            @inbounds for l in 0:length(range)-1
-                prefetch(pointer(data, buckets[start+l+8]))
-                i = buckets[start+l]
+            @inbounds for l in 0:len-1
+                prefetch(pointer(data, bucket[start+l+8]))
+                i = bucket[start+l]
                 p = data[i]
                 d = count_ones(q ⊻ p)
                 n_compared += 1
