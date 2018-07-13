@@ -20,7 +20,6 @@ for T in [:BitVec64, :BitVec128, :BitVec256, :BitVec512]
         Base.:<<(bv::$T, n::BaseInts) = Intrinsics.shl_int(bv, n)
         Base.:>>(bv::$T, n::BaseInts) = Intrinsics.lshr_int(bv, n)
         Base.getindex(bv::$T, i::Integer) = Intrinsics.trunc_int(Bool, bv >> (i - 1))
-        #Base.rem(bv::$T, ::Type{UInt32}) = Intrinsics.trunc_int(UInt32, bv)
         Base.rem(bv::$T, ::Type{U}) where {U<:BaseInts} = Intrinsics.trunc_int(U, bv)
         Base.count_ones(bv::$T) = Intrinsics.trunc_int(Int, Intrinsics.ctpop_int(bv))
     end
