@@ -6,7 +6,7 @@ using CodecZstd: ZstdDecompressorStream
 if VERSION > v"0.7-"
     using LinearAlgebra: lu!, qr!, svd
     using Arpack: svds
-    using StatsBase: std
+    using Statistics: mean, std
     using Serialization: serialize, deserialize
     using SparseArrays: SparseMatrixCSC
     using Random: MersenneTwister
