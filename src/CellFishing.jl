@@ -4,12 +4,12 @@ using CodecZlib: GzipDecompressorStream
 using CodecZstd: ZstdDecompressorStream
 
 if VERSION > v"0.7-"
-    using LinearAlgebra: lu!, qr!, svd
     using Arpack: svds
-    using Statistics: mean, std
+    using LinearAlgebra: lu!, qr!, svd
+    using Random: MersenneTwister
     using Serialization: serialize, deserialize
     using SparseArrays: SparseMatrixCSC
-    using Random: MersenneTwister
+    using Statistics: mean, std
     macro f(ex) esc(ex) end
 else
     using Compat: undef, minimum, maximum, sum, mean, std, findfirst
