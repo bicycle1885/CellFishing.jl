@@ -308,9 +308,9 @@ NearestNeighbors(k::Integer) = NearestNeighbors(zeros(Int, k), zeros(Int, k), 0,
 Base.length(nns::NearestNeighbors) = length(nns.indexes)
 
 # Tidy up `nns` when the last element is updated.
-function tidyup!(nns::NearestNeighbors)
+@inline function tidyup!(nns::NearestNeighbors)
     j = length(nns) - 1
-    while j ≥ 1 && nns.distances[j] > nns.distances[j+1]
+    @inbounds while j ≥ 1 && nns.distances[j] > nns.distances[j+1]
         nns.indexes[j], nns.indexes[j+1] = nns.indexes[j+1], nns.indexes[j]
         nns.distances[j], nns.distances[j+1] = nns.distances[j+1], nns.distances[j]
         j -= 1
