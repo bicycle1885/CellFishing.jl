@@ -3,7 +3,7 @@ module CellFishing
 using CodecZlib: GzipDecompressorStream
 using CodecZstd: ZstdDecompressorStream
 
-if VERSION > v"0.7-"
+if VERSION ≥ v"0.7.0-rc1"
     using Arpack: svds
     using LinearAlgebra: lu!, qr!, svd
     using Random: MersenneTwister

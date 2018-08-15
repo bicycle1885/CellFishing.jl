@@ -4,7 +4,7 @@ using CellFishing
 using HDF5
 using DocOpt
 
-if VERSION > v"0.7-"
+if VERSION ≥ v"0.7.0-rc1"
     using Dates
     using Random
 else
@@ -48,7 +48,7 @@ function loadloom(datafile)
         counts = Matrix(read(file, "/matrix")')
         featurenames = read(file, "/row_attrs/Gene")
         cellnames = read(file, "/col_attrs/CellID")
-        @static if VERSION > v"0.7-"
+        @static if VERSION ≥ v"0.7.0-rc1"
             return (counts=counts, featurenames=featurenames, cellnames=cellnames)
         else
             return Data(counts, featurenames, cellnames)
@@ -84,7 +84,8 @@ function writeknn(file, cellnames_query, cellnames_reference, neighbors)
     end
 end
 
-srand(1234)
+using Random: seed!
+seed!(1234)
 if args["build"]
     filename = args["<reference>"]
     println(stderr, "Build a search database from $(filename).")

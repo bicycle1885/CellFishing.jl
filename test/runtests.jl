@@ -1,12 +1,13 @@
 include("../src/CellFishing.jl")
 
-if VERSION > v"0.7-"
+if VERSION ≥ v"0.7.0-rc1"
     using Test
-    using Random
+    using Random: seed!, shuffle
     using SparseArrays
 else
     using Base.Test
     using Compat: occursin
+    const seed! = srand
 end
 
 const HammingIndexes = CellFishing.HammingIndexes
@@ -39,7 +40,7 @@ end
 @testset "HammingIndexes" begin
     linear = HammingIndexes.LinearSearch()
     mindex = HammingIndexes.MultiIndexSearch()
-    srand(1234)
+    seed!(1234)
     data = rand(UInt64, 1000)
     db = HammingIndexes.HammingIndex(data)
     for r in 0:16
@@ -62,7 +63,7 @@ end
         @test ok
     end
 
-    srand(1234)
+    seed!(1234)
     data = rand(UInt64, 1_000_000)
     db = HammingIndexes.HammingIndex(data)
     queries = data[rand(1:length(data), 100)]
@@ -110,7 +111,7 @@ end
 end
 
 @testset "CellIndex" begin
-    srand(1234)
+    seed!(1234)
     m, n = 100, 200
     counts = rand(0:1000, m, n)
     featurenames = string.("feature:", 1:m)
@@ -131,7 +132,7 @@ end
         @test CellFishing.load(string(tmpfile, ".zst")) isa CellFishing.CellIndex
     end
 
-    srand(12345)
+    seed!(12345)
     m, n = 100, 200
     counts = rand(0:1000, m, n)
     featurenames = string.("feature:", 1:m)

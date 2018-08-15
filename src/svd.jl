@@ -5,7 +5,7 @@
 function tsvd(A::Matrix{T}, k::Integer) where T
     m, n = size(A)
     F, = svds(A, nsv=k)
-    @static if VERSION > v"0.7-"
+    @static if VERSION ≥ v"0.7.0-rc1"
         U, Σ, V = F.U, F.S, F.V
     else
         U, Σ, V = F[:U], F[:S], F[:V]
