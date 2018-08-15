@@ -50,12 +50,20 @@ end
 ## Installation
 
 First of all, you need to install a Julia compiler.  A recommended way to
-install Julia is downloading pre-built binaries. The pre-built binaries of Julia
-for several major platforms are distributed at
+install Julia is downloading pre-built binaries. The pre-built binaries of
+Julia for several major platforms are distributed at
 <https://julialang.org/downloads/>.  Currently, CellFishing.jl supports Julia
-0.6 and 0.7 (beta). Then, install CellFishing.jl with the following command:
+0.6, 0.7 and 1.0. However, we highly recommend using Julia 1.0 because 0.6 and
+0.7 are developmental and thus will be soon unmaintained.
 
+Then, install CellFishing.jl with the following command:
+
+    # Julia 0.7/1.0
+    $ julia -e 'using Pkg; Pkg.add(PackageSpec(url="git@github.com:bicycle1885/CellFishing.jl.git"))'
+    
+    # Julia 0.6
     $ julia -e 'Pkg.clone("https://github.com/bicycle1885/CellFishing.jl")'
+
 
 To check the installation, you can try `using CellFishing` in your REPL:
 
@@ -75,6 +83,14 @@ To check the installation, you can try `using CellFishing` in your REPL:
 
 
 No error messages mean you have successfully installed CellFishing.jl.
+
+To run unit tests, execute the following command:
+
+    # Julia 0.7/1.0
+    $ julia -e 'using Pkg; Pkg.test("CellFishing")'
+
+    # Julia 0.6
+    $ julia -e 'Pkg.test("CellFishing")'
 
 
 ## Command-line interface (WIP)
