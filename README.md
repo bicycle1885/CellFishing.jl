@@ -49,12 +49,12 @@ end
 
 ## Installation
 
-First of all, you need to install a Julia compiler.  A recommended way to
-install Julia is downloading pre-built binaries. The pre-built binaries of
-Julia for several major platforms are distributed at
-<https://julialang.org/downloads/>.  Currently, CellFishing.jl supports Julia
-0.6, 0.7 and 1.0. However, we highly recommend using Julia 1.0 because 0.6 and
-0.7 are developmental and thus will soon be unmaintained.
+First of all, you need to install a Julia compiler.  A recommended way is to
+download a pre-built binary of Julia. The pre-built binaries for several major
+platforms are distributed at <https://julialang.org/downloads/>.  Currently,
+CellFishing.jl supports Julia 0.6, 0.7 and 1.0. However, we highly recommend
+using Julia 1.0 because 0.6 and 0.7 are developmental and thus will soon be
+unmaintained.
 
 Then, install CellFishing.jl with the following command:
 
