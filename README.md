@@ -54,7 +54,7 @@ install Julia is downloading pre-built binaries. The pre-built binaries of
 Julia for several major platforms are distributed at
 <https://julialang.org/downloads/>.  Currently, CellFishing.jl supports Julia
 0.6, 0.7 and 1.0. However, we highly recommend using Julia 1.0 because 0.6 and
-0.7 are developmental and thus will be soon unmaintained.
+0.7 are developmental and thus will soon be unmaintained.
 
 Then, install CellFishing.jl with the following command:
 
@@ -68,16 +68,16 @@ Then, install CellFishing.jl with the following command:
 To check the installation, you can try `using CellFishing` in your REPL:
 
     $ julia
-                   _
-       _       _ _(_)_     |  A fresh approach to technical computing
-      (_)     | (_) (_)    |  Documentation: https://docs.julialang.org
+       _       _ _(_)_     |  Documentation: https://docs.julialang.org
+      (_)     | (_) (_)    |
        _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
       | | | | | | |/ _` |  |
-      | | |_| | | | (_| |  |  Version 0.7.0-beta.0 (2018-06-24 01:32 UTC)
-     _/ |\__'_|_|_|\__'_|  |  Official http://julialang.org/ release
-    |__/                   |  x86_64-apple-darwin14.5.0
+      | | |_| | | | (_| |  |  Version 1.0.0 (2018-08-08)
+     _/ |\__'_|_|_|\__'_|  |  Official https://julialang.org/ release
+    |__/                   |
 
     julia> using CellFishing  # load the package
+    [ Info: Precompiling CellFishing [5ab3512e-c64d-48f6-b1c0-509c1121fdda]
 
     julia>
 
