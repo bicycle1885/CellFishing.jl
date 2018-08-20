@@ -59,7 +59,7 @@ unmaintained.
 Then, install CellFishing.jl with the following command:
 
     # Julia 0.7/1.0
-    $ julia -e 'using Pkg; Pkg.add(PackageSpec(url="git@github.com:bicycle1885/CellFishing.jl.git"))'
+    $ julia -e 'using Pkg; Pkg.add(PackageSpec(url="git://github.com/bicycle1885/CellFishing.jl.git"))'
     
     # Julia 0.6
     $ julia -e 'Pkg.clone("https://github.com/bicycle1885/CellFishing.jl")'
