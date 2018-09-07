@@ -10,6 +10,9 @@ using CellFishing
 using CSV
 
 # Load expression profiles of database cells.
+# Note: We highly recommend using the Loom format (http://loompy.org/) to
+# load expression data, because loading a large matrix in plain text takes
+# extremely long time.
 data = CSV.read("database.txt", delim='\t')
 cellnames = string.(names(data))
 featurenames = string.(data[:,1])
