@@ -154,13 +154,14 @@ end
                 index=index)
             perm = shuffle(1:m)
             U = CellFishing.findneighbors(1, CellFishing.ExpressionMatrix(MatType(counts)[perm,:], featurenames[perm]), idx)
+            totaldist::Int = 0
             for i in 1:10
                 j = U.indexes[1,i]
-                dist = U.hammingdistances[1,i]
-                @test dist == 0
+                totaldist += U.hammingdistances[1,i]
                 all += 1
                 ok += i == j
             end
+            @test totaldist ≤ 1
         end
     end
     @test ok / all ≈ 1.0
