@@ -368,7 +368,7 @@ Features(names::AbstractVector{String}) = Features(names, falses(length(names)))
 Base.copy(features::Features) = Features(copy(features.names), copy(features.selected))
 
 function Base.show(io::IO, features::Features)
-    print(io, summary(features), "(<n-features=$(nfeatures(features)),n-selected=$(nselected(features))>)")
+    print(io, summary(features), "(<#features=$(nfeatures(features)),#selected=$(nselected(features))>)")
 end
 
 nfeatures(features::Features) = length(features.names)
@@ -493,6 +493,10 @@ end
 
 nbits(index::CellIndex) = bitsof(bitvectype(index.lshashes[1]))
 ncells(index::CellIndex) = length(index.lshashes[1].hammingindex)
+
+function Base.show(io::IO, index::CellIndex)
+    print(io, summary(index), "(<#cells=$(ncells(index)), hash=$(nbits(index))×$(length(index.lshashes))>)")
+end
 
 """
     CellIndex{T}(counts, features; <keyword arguments>...)
@@ -636,8 +640,8 @@ A set of k-nearest neighboring cells.
 Fields
 ------
 
-- `indexes`: cell indexes (k x n-queries).
-- `hammingdistances`: Hamming distances (k x n-queries).
+- `indexes`: cell indexes (k x #queries).
+- `hammingdistances`: Hamming distances (k x #queries).
 """
 struct NearestCells
     indexes::Matrix{Int}

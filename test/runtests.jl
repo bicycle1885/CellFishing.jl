@@ -119,6 +119,7 @@ end
     index = CellFishing.CellIndex(counts, features, metadata=string.("cell:", 1:n))
     @test CellFishing.nbits(index) == 128
     @test CellFishing.ncells(index) == n
+    @test occursin("CellFishing.CellIndex(<#cells=200, hash=128×4>)", sprint(show, index))
     #@test index.featurenames[1] == "feature:1"
     @test index.metadata[1] == "cell:1"
     @test occursin("CellIndex", sprint(show, index))
