@@ -652,6 +652,16 @@ struct NearestCells
 end
 
 """
+    similarities(ncs::NearestCells, index::CellIndex) -> Matrix{Float32}
+
+Estimate cosine similarities between queries and neighbors from the Hamming distance.
+"""
+function similarities(ncs::NearestCells, index::CellIndex)
+    T = nbits(index)
+    return cos.(ncs.hammingdistances .* (Float32(pi) ./ T))
+end
+
+"""
     findneighbors(
         k::Integer,
         counts::AbstractMatrix,

@@ -137,7 +137,7 @@ end
     m, n = 100, 200
     counts = rand(0:1000, m, n)
     featurenames = string.("feature:", 1:m)
-    all = ok = 0
+    n_all = n_ok = 0
     for MatType in [Matrix, SparseMatrixCSC]
         for n_bits in [64, 128, 256, 512],
             superbit in [1, 8, 17],
@@ -154,16 +154,18 @@ end
                 normalize=normalize, standardize=standardize,
                 index=index)
             perm = shuffle(1:m)
-            U = CellFishing.findneighbors(1, CellFishing.ExpressionMatrix(MatType(counts)[perm,:], featurenames[perm]), idx)
+            neighbors = CellFishing.findneighbors(1, CellFishing.ExpressionMatrix(MatType(counts)[perm,:], featurenames[perm]), idx)
             totaldist::Int = 0
             for i in 1:10
-                j = U.indexes[1,i]
-                totaldist += U.hammingdistances[1,i]
-                all += 1
-                ok += i == j
+                j = neighbors.indexes[1,i]
+                totaldist += neighbors.hammingdistances[1,i]
+                n_all += 1
+                n_ok += i == j
             end
             @test totaldist ≤ 1
+            S = CellFishing.similarities(neighbors, idx)
+            @test all(-1 .≤ S .≤ 1)
         end
     end
-    @test ok / all ≈ 1.0
+    @test n_ok / n_all ≈ 1.0
 end
