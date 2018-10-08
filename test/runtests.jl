@@ -1,14 +1,8 @@
 include("../src/CellFishing.jl")
 
-if VERSION ≥ v"0.7.0-rc1"
-    using Test
-    using Random: seed!, shuffle
-    using SparseArrays
-else
-    using Base.Test
-    using Compat: occursin
-    const seed! = srand
-end
+using Test
+using Random: seed!, shuffle
+using SparseArrays: SparseMatrixCSC
 
 const HammingIndexes = CellFishing.HammingIndexes
 

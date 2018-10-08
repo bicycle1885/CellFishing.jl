@@ -1,10 +1,5 @@
 module HammingIndexes
 
-if VERSION < v"0.7.0-rc1"
-    using Compat: undef, copyto!, Nothing
-end
-
-
 # Simple List
 # -----------
 
@@ -20,17 +15,11 @@ end
 
 Base.length(list::List) = list.size
 
-if VERSION ≥ v"0.7.0-rc1"
-    function Base.iterate(list::List, i::Int=1)
-        if i > list.size
-            return nothing
-        end
-        return list.data[i], i + 1
+function Base.iterate(list::List, i::Int=1)
+    if i > list.size
+        return nothing
     end
-else
-    Base.start(list::List) = 1
-    Base.done(list::List, i::Int) = i > list.size
-    Base.next(list::List, i::Int) = list.data[i], i + 1
+    return list.data[i], i + 1
 end
 
 function Base.empty!(list::List)
@@ -517,4 +506,4 @@ end
     )
 end
 
-end
+end  # module HammingIndexes

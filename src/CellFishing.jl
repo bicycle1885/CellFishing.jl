@@ -1,35 +1,13 @@
 module CellFishing
 
+using Arpack: svds
+using LinearAlgebra: lu!, qr!, svd
+using Random: MersenneTwister
+using Serialization: serialize, deserialize
+using SparseArrays: SparseMatrixCSC
+using Statistics: mean, std
 using CodecZlib: GzipDecompressorStream
 using CodecZstd: ZstdDecompressorStream
-
-if VERSION ≥ v"0.7.0-rc1"
-    using Arpack: svds
-    using LinearAlgebra: lu!, qr!, svd
-    using Random: MersenneTwister
-    using Serialization: serialize, deserialize
-    using SparseArrays: SparseMatrixCSC
-    using Statistics: mean, std
-    macro f(ex) esc(ex) end
-else
-    using Compat: undef, minimum, maximum, sum, mean, std, findfirst
-    const lu! = lufact!
-    const qr! = qrfact!
-    macro f(ex)
-        function rec(ex)
-            if ex isa Expr
-                if ex.head == :.
-                    Expr(:ref, rec(ex.args[1]), ex.args[2])
-                else
-                    Expr(ex.head, rec.(ex.args)...)
-                end
-            else
-                ex
-            end
-        end
-        esc(rec(ex))
-    end
-end
 
 include("svd.jl")
 include("bitvectors.jl")
@@ -317,11 +295,11 @@ function generate_random_projections(K::Integer, D::Integer, superbit::Integer)
     for _ in 1:q
         # generate an orthogonal random matrix.
         M = randn(Float32, D, superbit)
-        push!(Ps, Matrix(@f qr!(M).Q)')
+        push!(Ps, Matrix(qr!(M).Q)')
     end
     if r > 0
         M = randn(Float32, D, r)
-        push!(Ps, Matrix(@f qr!(M).Q)')
+        push!(Ps, Matrix(qr!(M).Q)')
     end
     return vcat(Ps...)
 end
@@ -751,4 +729,4 @@ function rankcells!(neighbors::Matrix{Int}, Z::Matrix{T}, lshashes::Vector{LSHas
     return ncs
 end
 
-end
+end  # module CellFishing
