@@ -5,7 +5,7 @@ primitive type BitVec128 <: BitVec 128 end
 primitive type BitVec256 <: BitVec 256 end
 primitive type BitVec512 <: BitVec 512 end
 
-using Core.Intrinsics
+using Core: Intrinsics
 
 const BaseInts = Union{Bool,Int8,UInt8,Int16,UInt16,Int32,UInt32,Int64,UInt64}
 
