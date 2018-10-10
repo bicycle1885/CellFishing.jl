@@ -635,7 +635,7 @@ end
 Estimate cosine similarities between queries and neighbors from the Hamming distance.
 """
 function similarities(ncs::NearestCells, index::CellIndex)
-    T = nbits(index)
+    T = nbits(index) * length(index.lshashes)
     return cos.(ncs.hammingdistances .* (Float32(pi) ./ T))
 end
 
