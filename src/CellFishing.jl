@@ -8,10 +8,12 @@ using SparseArrays: SparseMatrixCSC
 using Statistics: mean, std
 using CodecZlib: GzipDecompressorStream
 using CodecZstd: ZstdDecompressorStream
+using Blosc: libblosc
 
 include("svd.jl")
 include("bitvectors.jl")
 include("HammingIndexes.jl")
+include("cmatrix.jl")
 
 const HammingIndex = HammingIndexes.HammingIndex
 const NearestNeighbors = HammingIndexes.NearestNeighbors

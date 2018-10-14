@@ -82,6 +82,32 @@ end
     end
 end
 
+@testset "CMatrix" begin
+    m, n = 100, 200
+    seed!(1234)
+    counts = rand(0:100, m, n)
+    # with the default parameters
+    M = CellFishing.CMatrix(counts)
+    @test M isa AbstractMatrix{Int}
+    @test all(M .== counts)
+    for j in 1:n
+        @test M[:,j] == counts[:,j]
+    end
+    # with specific parameters
+    M = CellFishing.CMatrix(
+        counts,
+        level=9,
+        shuffle=false,
+        compressor="lz4hc",
+        blocksize=m,
+        nthreads=2)
+    @test M isa AbstractMatrix{Int}
+    @test all(M .== counts)
+    for j in 1:n
+        @test M[:,j] == counts[:,j]
+    end
+end
+
 @testset "Features" begin
     m = 100
     names = string.("feature:", 1:m)

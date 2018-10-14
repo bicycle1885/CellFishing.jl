@@ -1,3 +1,4 @@
 julia 0.7
 CodecZlib 0.5
 CodecZstd 0.5
+Blosc 0.5
