@@ -709,6 +709,32 @@ function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex; inferp
     return ncs
 end
 
+function findneighbors(k::Integer, I::AbstractVector{Int}, index::CellIndex)
+    if k < 0
+        throw(ArgumentError("negative k"))
+    end
+    n = length(I)
+    L = length(index.lshashes)
+    @assert L ≥ 1
+    T = CellFishing.bitvectype(first(index.lshashes))
+    neighbors = zeros(Int, k * L, n)
+    Z = Matrix{T}(undef, L, n)
+    nns = NearestNeighbors(k)
+    for l in 1:L
+        lshash = index.lshashes[l]
+        for j in 1:n
+            h = lshash.hammingindex[I[j]]
+            Z[l,j] = h
+            HammingIndexes.findknn!(nns, h, lshash.hammingindex)
+            for i in 1:k
+                neighbors[k*(l-1)+i,j] = nns.indexes[i]
+            end
+        end
+    end
+    @assert all(neighbors .> 0)
+    return CellFishing.rankcells!(neighbors, Z, index.lshashes)
+end
+
 function rankcells!(neighbors::Matrix{Int}, Z::Matrix{T}, lshashes::Vector{LSHash{T}}) where T
     L, N = size(Z)
     k = div(size(neighbors, 1), L)

@@ -188,6 +188,9 @@ end
             @test totaldist ≤ 1
             S = CellFishing.similarities(neighbors, idx)
             @test all(-1 .≤ S .≤ 1)
+            neighbors = CellFishing.findneighbors(3, [1, 2, 3, 5, 7], idx)
+            @test neighbors.indexes[1,:] == [1, 2, 3, 5, 7]
+            @test all(neighbors.hammingdistances[1,:] .== 0)
         end
     end
     @test n_ok / n_all ≈ 1.0
