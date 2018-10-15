@@ -142,6 +142,7 @@ end
     @test occursin("CellFishing.CellIndex(<#cells=200, hash=128×4>)", sprint(show, index))
     #@test index.featurenames[1] == "feature:1"
     @test index.metadata[1] == "cell:1"
+    @test index.counts === nothing
     @test occursin("CellIndex", sprint(show, index))
     mktempdir() do tmpdir
         tmpfile = joinpath(tmpdir, "index")
@@ -152,6 +153,8 @@ end
         run(`zstd -kq $(tmpfile)`)
         @test CellFishing.load(string(tmpfile, ".zst")) isa CellFishing.CellIndex
     end
+    index = CellFishing.CellIndex(counts, features, keep_counts=true)
+    @test index.counts == counts[features.selected,:]
 
     seed!(12345)
     m, n = 100, 200

@@ -20,6 +20,7 @@ function blosc_compress(
         compressor::String="blosclz",
         blocksize::Integer=0,
         nthreads::Integer=1,
+        mmap::Bool=false,
     )
     srcsize = sizeof(data)
     src = pointer(data)
@@ -37,8 +38,14 @@ function blosc_compress(
         dstsize, compressor,
         blocksize, nthreads)
     @assert ret ≥ 0
-    resize!(dst, ret)
-    return dst
+    if mmap
+        dst_mmap = Mmap.mmap(Vector{UInt8}, (ret,), shared=false)
+        copyto!(dst_mmap, 1, dst, 1, ret)
+        return dst_mmap
+    else
+        resize!(dst, ret)
+        return dst
+    end
 end
 
 function getitem(data::Vector{UInt8}, ::Type{T}, i::Integer) where T

@@ -6,6 +6,7 @@ using Random: MersenneTwister
 using Serialization: serialize, deserialize
 using SparseArrays: SparseMatrixCSC
 using Statistics: mean, std
+using Mmap: Mmap
 using CodecZlib: GzipDecompressorStream
 using CodecZstd: ZstdDecompressorStream
 using Blosc: libblosc
@@ -467,6 +468,8 @@ struct CellIndex
     lshashes::Vector{LSHash{T}} where T
     # any user-provided metadata (e.g. cellnames)
     metadata::Any
+    # compressed count matrix (optional)
+    counts::Union{CMatrix{T} where T, Nothing}
     # run-time statistics
     rtstats::RuntimeStats
 end
@@ -499,6 +502,7 @@ Arguments
 - `n_lshashes=4`: the number of locality-sensitive hashes.
 - `superbit=min(n_dims, n_bits)`: the depth of super-bits.
 - `index=true`: to create bit index(es) or not.
+- `keep_counts=false`: to keep filtered counts in the index object.
 """
 function CellIndex(
         # required arguments
@@ -518,7 +522,9 @@ function CellIndex(
         n_bits::Integer=128,
         n_lshashes::Integer=4,
         superbit::Integer=min(n_dims, n_bits),
-        index::Bool=true,)
+        index::Bool=true,
+        keep_counts::Bool=false,
+       )
     # check arguments
     m, n = size(counts)
     if nfeatures(features) != m
@@ -547,7 +553,8 @@ function CellIndex(
     end
     # filter features
     featurenames = selectedfeatures(features)
-    Y = ExpressionMatrix(convert(Matrix{Float32}, Matrix(counts[features.selected,:])), featurenames)
+    counts = Matrix(counts[features.selected,:])
+    Y = ExpressionMatrix(convert(Matrix{Float32}, counts), featurenames)
     # make cell sketches
     T = n_bits ==  64 ? BitVec64  :
         n_bits == 128 ? BitVec128 :
@@ -571,8 +578,14 @@ function CellIndex(
         sketch!(Z, X, P)
         push!(lshashes, LSHash(P, HammingIndex(Z, index=index)))
     end
+    # compress counts if required
+    if keep_counts
+        ccounts = CMatrix(counts, mmap=true)
+    else
+        ccounts = nothing
+    end
     # create a cell index
-    return CellIndex(preproc, lshashes, metadata, RuntimeStats())
+    return CellIndex(preproc, lshashes, metadata, ccounts, RuntimeStats())
 end
 
 """
