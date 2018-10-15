@@ -10,18 +10,26 @@ Base.size(M::CMatrix) = M.size
 Base.IndexStyle(::Type{<:CMatrix}) = IndexLinear()
 Base.getindex(M::CMatrix, i::Integer) = getitem(M.data, eltype(M), i)
 Base.getindex(M::CMatrix, ::Colon, j::Integer) = getitems(M.data, eltype(M), (j - 1) * size(M, 1) + 1, size(M, 1))
+function Base.getindex(M::CMatrix, ::Colon, cols::AbstractVector{<:Integer})
+    n = length(cols)
+    A = Matrix{eltype(M)}(undef, size(M, 1), n)
+    for j in 1:n
+        A[:,j] .= M[:,cols[j]]
+    end
+    return A
+end
 
 const BLOSC_MAX_OVERHEAD = 16  # BLOSC_MIN_HEADER_LENGTH
 
 function blosc_compress(
-        data::Matrix;
+        data::Matrix{T};
         level::Integer=8,
         shuffle::Bool=true,
-        compressor::String="blosclz",
-        blocksize::Integer=0,
+        compressor::String="lz4hc",
+        blocksize::Integer=size(data, 1) * sizeof(T),
         nthreads::Integer=1,
         mmap::Bool=false,
-    )
+    ) where {T<:Integer}
     srcsize = sizeof(data)
     src = pointer(data)
     dstsize = srcsize + BLOSC_MAX_OVERHEAD
@@ -33,7 +41,7 @@ function blosc_compress(
          Csize_t, Ptr{Cvoid}, Ptr{Cvoid},
          Csize_t, Cstring,
          Csize_t, Cint),
-        level, shuffle, sizeof(eltype(data)),
+        level, shuffle, sizeof(T),
         srcsize, src, dst,
         dstsize, compressor,
         blocksize, nthreads)
