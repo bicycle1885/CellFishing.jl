@@ -23,7 +23,7 @@ const BLOSC_MAX_OVERHEAD = 16  # BLOSC_MIN_HEADER_LENGTH
 
 function blosc_compress(
         data::Matrix{T};
-        level::Integer=8,
+        level::Integer=9,
         shuffle::Bool=true,
         compressor::String="lz4hc",
         blocksize::Integer=size(data, 1) * sizeof(T),
