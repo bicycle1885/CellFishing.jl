@@ -454,7 +454,7 @@ struct CellIndex
     # any user-provided metadata (e.g. cellnames)
     metadata::Any
     # compressed count matrix (optional)
-    counts::Union{CMatrix{T} where T, Nothing}
+    counts::Union{CMatrix{Int32},Nothing}
     # run-time statistics
     rtstats::RuntimeStats
 end
@@ -581,29 +581,51 @@ Save `index` to a file.
 See also `load`.
 """
 function save(filename::AbstractString, index::CellIndex)
-    open(io->serialize(io, index), filename, "w")
+    Base.open(filename, "w") do output
+        serialize(output, index.preproc)
+        serialize(output, index.lshashes)
+        serialize(output, index.metadata)
+        serialize(output, index.rtstats)
+        if index.counts !== nothing
+            counts = index.counts
+            write(output, Int64(counts.size[1]))
+            write(output, Int64(counts.size[2]))
+            write(output, Int64(sizeof(counts.data)))
+            write(output, counts.data)
+        end
+    end
     return nothing
 end
 
 """
-    load(filename::AbstractString)
+    load(filename::AbstractString; mmap::Bool=false)
 
 Load an index from `filename`.
 
-The file may be compressed with gzip or zstd; the compression format will be
-detected by the extension of the file.
+If `mmap` is `true`, the expression matrix stored in the file will be loaded
+using memory-mapped file to save the memory space.
 
 See also `save`.
 """
-function load(filename::AbstractString)
-    open(filename, "r") do file
-        if endswith(filename, ".gz")
-            stream = GzipDecompressorStream(file)
-        elseif endswith(filename, ".zst")
-            stream = ZstdDecompressorStream(file)
+function load(filename::AbstractString; mmap::Bool=false)
+    Base.open(filename, "r") do input
+        preproc = deserialize(input)
+        lshashes = deserialize(input)
+        metadata = deserialize(input)
+        rtstats = deserialize(input)
+        if eof(input)
+            counts = nothing
         else
-            stream = file
+            m = read(input, Int64)
+            n = read(input, Int64)
+            len = read(input, Int64)
+            if mmap
+                data = Mmap.mmap(filename, Vector{UInt8}, len, position(input), grow=false)
+            else
+                data = read(input, len)
+            end
+            counts = CMatrix{Int32}(data, (m, n))
         end
-        return deserialize(stream)
+        return CellIndex(preproc, lshashes, metadata, counts, rtstats)
     end
 end
