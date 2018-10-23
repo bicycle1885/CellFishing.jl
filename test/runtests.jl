@@ -148,10 +148,10 @@ end
         tmpfile = joinpath(tmpdir, "index")
         CellFishing.save(tmpfile, index)
         @test CellFishing.load(tmpfile) isa CellFishing.CellIndex
-        run(`gzip -kq $(tmpfile)`)
-        @test CellFishing.load(string(tmpfile, ".gz")) isa CellFishing.CellIndex
-        run(`zstd -kq $(tmpfile)`)
-        @test CellFishing.load(string(tmpfile, ".zst")) isa CellFishing.CellIndex
+        #run(`gzip -kq $(tmpfile)`)
+        #@test CellFishing.load(string(tmpfile, ".gz")) isa CellFishing.CellIndex
+        #run(`zstd -kq $(tmpfile)`)
+        #@test CellFishing.load(string(tmpfile, ".zst")) isa CellFishing.CellIndex
     end
     index = CellFishing.CellIndex(counts, features, keep_counts=true)
     @test index.counts == counts[features.selected,:]

@@ -6,6 +6,8 @@ end
 
 CMatrix(counts::Matrix; kwargs...) = CMatrix{eltype(counts)}(blosc_compress(counts; kwargs...), size(counts))
 
+Base.convert(::Type{CMatrix{T}}, M::AbstractMatrix) where {T} = CMatrix(Matrix{T}(M))
+
 Base.size(M::CMatrix) = M.size
 Base.IndexStyle(::Type{<:CMatrix}) = IndexLinear()
 Base.getindex(M::CMatrix, i::Integer) = getitem(M.data, eltype(M), i)
