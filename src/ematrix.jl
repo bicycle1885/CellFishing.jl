@@ -32,7 +32,8 @@ function Base.getindex(M::ExpressionMatrix, featurenames::AbstractVector{<:Abstr
     m = length(featurenames)
     v = Vector{eltype(M)}(undef, m)
     for i in 1:m
-        v[i] = M.data[M.featuremap[featurenames[i]],j]
+        ii = get(M.featuremap, featurenames[i], 0)
+        v[i] = ii > 0 ? M.data[ii,j] : 0
     end
     return v
 end

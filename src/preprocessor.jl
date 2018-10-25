@@ -102,7 +102,7 @@ end
 function preprocess(proc::Preprocessor, Y::ExpressionMatrix, inferparams::Bool)
     perm = zeros(Int, length(proc.featurenames))
     for (i, name) in enumerate(proc.featurenames)
-        perm[i] = Y.featuremap[name]
+        perm[i] = get(Y.featuremap, name, 0)
     end
     X = permuterows(perm, Y.data)::Matrix{Float32}  # should be inferable
     if proc.normalize
@@ -132,22 +132,14 @@ end
 indims(p::Preprocessor) = length(p.featurenames)
 outdims(p::Preprocessor) = p.dimreducer.dims
 
-permuterows(perm::Vector{Int}, Y::AbstractMatrix) = convert(Matrix{Float32}, Y[perm,:])
+#permuterows(perm::Vector{Int}, Y::AbstractMatrix) = convert(Matrix{Float32}, Y[perm,:])
 
-function permuterows(perm::Vector{Int}, Y::Matrix{Float32})
+function permuterows(perm::Vector{Int}, Y::AbstractMatrix)
     m = length(perm)
     n = size(Y, 2)
     Y_permuted = Matrix{Float32}(undef, m, n)
-    @inbounds for j in 1:n
-        L = 16
-        col = (j-1) * size(Y, 1)
-        for i in 1:m-L
-            prefetch(pointer(Y, perm[i+L] + col))
-            Y_permuted[i,j] = Y[perm[i] + col]
-        end
-        for i in m-L+1:m
-            Y_permuted[i,j] = Y[perm[i] + col]
-        end
+    @inbounds for j in 1:n, i in 1:m
+        Y_permuted[i,j] = perm[i] > 0 ? Y[perm[i],j] : 0
     end
     return Y_permuted
 end
