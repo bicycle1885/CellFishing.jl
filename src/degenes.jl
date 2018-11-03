@@ -6,7 +6,7 @@ struct DEGenes
     bracketed::BitMatrix
 end
 
-const DEFAULT_NUM_NEIGHBORS = 10
+const DEFAULT_NUM_NEIGHBORS = 5
 
 function finddegs(
         counts::AbstractMatrix,
@@ -17,6 +17,53 @@ function finddegs(
     return finddegs(ExpressionMatrix(counts, featurenames), cellindexes, index, k=k)
 end
 
+function finddegs(
+        Y::ExpressionMatrix,
+        cellindexes::AbstractVector{Int},
+        index::CellIndex;
+        k::Integer=DEFAULT_NUM_NEIGHBORS,)
+    featurenames = index.preproc.featurenames
+    m = length(featurenames)
+    n = size(Y, 2)
+    neighbors = findneighbors(k, cellindexes, index)
+    # an extremely weak prior (Gamma distribution)
+    α₀, β₀ = 1e-1, 1e-3  # mean=100.0, var=100000.0
+    means = zeros(m, n)
+    negatives = zeros(m, n)
+    positives = zeros(m, n)
+    bracketed = falses(m, n)
+    for j in 1:n
+        counts_j = Y[featurenames,j]
+        counts_nns = index.counts[:,neighbors.indexes[:,j]]
+        counts_nns_normalized = sum(counts_j) * (counts_nns ./ sum(counts_nns, dims=1))
+        for i in 1:m
+            lnpn = lnpp = NaN
+            for l in 1:k
+                α = α₀ + counts_nns_normalized[i,l]
+                β = β₀ + 1
+                nb = NegativeBinomial(α, 1-inv(β+1))
+                y = counts_j[i]
+                lnpn = isnan(lnpn) ? logcdf(nb, y) : logaddexp(lnpn, logcdf(nb, y))
+                lnpp = isnan(lnpp) ? logccdf(nb, y-1) : logaddexp(lnpp, logccdf(nb, y-1))
+            end
+            negatives[i,j] = lnpn - log(k)
+            positives[i,j] = lnpp - log(k)
+        end
+    end
+    # change the base of logarithm from e (≈2.718) to 10
+    negatives .*= inv(log(10))
+    positives .*= inv(log(10))
+    return DEGenes(copy(featurenames), means, negatives, positives, bracketed)
+end
+
+function logaddexp(x::T, y::T) where T<:Real
+    # x or y is  NaN  =>  NaN
+    # x or y is +Inf  => +Inf
+    # x or y is -Inf  => other value
+    isfinite(x) && isfinite(y) || return max(x,y)
+    x > y ? x + log1p(exp(y - x)) : y + log1p(exp(x - y))
+end
+#=
 function finddegs(
         Y::ExpressionMatrix,
         cellindexes::AbstractVector{Int},
@@ -63,3 +110,4 @@ function finddegs(
     positives .*= inv(log(10))
     return DEGenes(copy(featurenames), means, negatives, positives, bracketed)
 end
+=#
