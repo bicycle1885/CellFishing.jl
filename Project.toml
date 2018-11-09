@@ -5,8 +5,6 @@ version = "0.2.0"
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 Blosc = "a74b3585-a348-5f62-a45c-50e91977d574"
-CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
-CodecZstd = "6b39b394-51ab-5f42-8807-6242bab2b4c2"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

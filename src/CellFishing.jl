@@ -7,8 +7,6 @@ using Serialization: serialize, deserialize
 using SparseArrays: SparseMatrixCSC
 using Statistics: mean, std
 using Mmap: Mmap
-using CodecZlib: GzipDecompressorStream
-using CodecZstd: ZstdDecompressorStream
 using Blosc: libblosc
 using Distributions: NegativeBinomial, logcdf, logccdf
 
