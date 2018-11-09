@@ -247,7 +247,7 @@ function save(filename::AbstractString, index::CellIndex)
 end
 
 """
-    load(filename::AbstractString; mmap::Bool=false)
+    load(filename::AbstractString; mmap::Bool=true)
 
 Load an index from `filename`.
 
@@ -256,7 +256,7 @@ using memory-mapped file to save the memory space.
 
 See also `save`.
 """
-function load(filename::AbstractString; mmap::Bool=false)
+function load(filename::AbstractString; mmap::Bool=true)
     Base.open(filename, "r") do input
         preproc = deserialize(input)
         lshashes = deserialize(input)
