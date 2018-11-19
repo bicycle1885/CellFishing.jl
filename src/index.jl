@@ -121,46 +121,58 @@ end
 """
     CellIndex{T}(counts, features; <keyword arguments>...)
 
-Create a cell index from a count matrix `counts` using `features`.
+Create a cell index from a count matrix `counts` along with `features`.
+
+Dimensionality reduction and data hashing generate puseudo-random numbers, and
+therefore it is recommended to fix the random number seed by calling
+`Random.seed!` for reproducibility.
 
 Arguments
 ---------
 
-- `counts`: transcriptome expression matrix (features x cells) [required].
-- `features`: features used to compare expression profiles [required].
-- `scalefactor=1.0e4`: the scale factor of library sizes.
-- `n_dims=50`: the number of dimensions after PCA.
-- `transformer=:log1p`: the variance-stabilizing transformer (`:log1p` or `:ftt`).
-- `randomize=true`: to use randomized SVD or not.
-- `normalize=true`: to normalize library sizes or not.
-- `standardize=true`: to standardize features or not.
-- `metadata`: arbitrary metadata.
-- `n_bits=128`: the number of bits (64, 128, 256, or 512).
-- `n_lshashes=4`: the number of locality-sensitive hashes.
-- `superbit=min(n_dims, n_bits)`: the depth of super-bits.
-- `index=true`: to create bit index(es) or not.
-- `keep_counts=false`: to keep filtered counts in the index object.
+Required arguments (positional):
+- `counts`: Transcriptome expression matrix (features x cells).
+- `features`:
+    Features used to compare expression profiles.
+    It must be an object of `Features`.
+
+Additional data:
+- `metadata=nothing`: An arbitrary metadata (e.g., cell types).
+- `index=true`: Create bit index(es) or not.
+- `keep_counts=false`: Keep filtered counts in the index object.
+
+Parameters for preprocessing:
+- `normalize=true`: Normalize library sizes or not.
+- `scalefactor=1.0e4`: The scale factor of cell-wise counts (or library sizes).
+- `transformer=:log1p`: Variance-stabilizing transformer (`:log1p` or `:ftt`).
+- `n_dims=50`: The number of dimensions of principal components.
+- `randomize=true`: Use the randomized version of SVD or not.
+- `standardize=true`: Standardize features or not.
+
+Parameters for locality-sensitive hashing:
+- `n_bits=128`: The number of bits (64, 128, 256, or 512).
+- `n_lshashes=4`: The number of independent locality-sensitive hashes.
+- `superbit=min(n_dims, n_bits)`: The depth of super-bits.
 """
 function CellIndex(
         # required arguments
         counts::AbstractMatrix{<:Real},
         features::Features;
         # additional data
-        featurenames=nothing,
         metadata=nothing,
+        index::Bool=true,
+        keep_counts::Bool=false,
         # parameters for preprocessing
-        scalefactor::Real=1.0e4,
-        n_dims::Integer=50,
-        transformer::Symbol=:log1p,
-        randomize::Bool=true,
         normalize::Bool=true,
+        scalefactor::Real=1.0e4,
+        transformer::Symbol=:log1p,
+        n_dims::Integer=50,
+        randomize::Bool=true,
         standardize::Bool=true,
         # parameters for LSH
         n_bits::Integer=128,
         n_lshashes::Integer=4,
         superbit::Integer=min(n_dims, n_bits),
-        index::Bool=true,
-        keep_counts::Bool=false,
        )
     # check arguments
     m, n = size(counts)
