@@ -135,8 +135,6 @@ end
 indims(p::Preprocessor) = length(p.featurenames)
 outdims(p::Preprocessor) = p.dimreducer.dims
 
-#permuterows(perm::Vector{Int}, Y::AbstractMatrix) = convert(Matrix{Float32}, Y[perm,:])
-
 function permuterows(perm::Vector{Int}, Y::AbstractMatrix)
     m = length(perm)
     n = size(Y, 2)
