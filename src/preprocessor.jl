@@ -52,14 +52,15 @@ reducedims(pca::PCA, X::AbstractMatrix) = pca.proj'X
 
 # permutation, log transformation, scaling, projection, etc.
 struct Preprocessor
+    n::Int
     featurenames::Vector{String}
+    sums::Vector{Float32}
+    soss::Vector{Float32}
     transformer::Union{LogT,FTT}
     dimreducer::PCA
     normalize::Bool
     standardize::Bool
-    scalefactor::Float32     # used for normalization
-    mean::Vector{Float32}    # used for PCA
-    invstd::Vector{Float32}  # used for standardization
+    scalefactor::Float32
 end
 
 function Preprocessor(
@@ -78,28 +79,31 @@ function Preprocessor(
     # apply variance-stabilizing transformation
     transform!(transformer, X)
     # standardize features
-    μ = vec(mean(X, dims=2))
+    m, n = size(X)
+    sums = vec(sum(X, dims=2))
+    soss = vec(sum(X.^2, dims=2))
+    μ = sums ./ n
     X .-= μ
     if standardize
-        σ = vec(std(X, dims=2))
+        σ = sqrt.((soss .- 2 .* μ .* sums) ./ n .+ μ.^2)
         if any(σ .== 0)
             throw(ArgumentError("found $(sum(σ .== 0)) features with no variance; filter out these features"))
         end
-        invstd = inv.(σ)
-        X .*= invstd
-    else
-        invstd = Float32[]
+        X .*= inv.(σ)
     end
     # fit dimreducer
     fit!(dimreducer, X)
     return Preprocessor(
+        n,
         Y.featurenames,
+        sums,
+        soss,
         transformer,
         dimreducer,
         normalize,
         standardize,
         scalefactor,
-        μ, invstd)
+    )
 end
 
 function preprocess(proc::Preprocessor, Y::ExpressionMatrix, inferparams::Bool)
@@ -112,24 +116,41 @@ function preprocess(proc::Preprocessor, Y::ExpressionMatrix, inferparams::Bool)
         X .*= proc.scalefactor ./ sum(X, dims=1)
     end
     transform!(proc.transformer, X)
-    μ = inferparams ? vec(mean(X, dims=2)) : proc.mean
+    n1 = proc.n
+    m, n2 = size(X)
+    sums1 = proc.sums
+    soss1 = proc.soss
+    sums2 = vec(sum(X, dims=2))
+    soss2 = vec(sum(X.^2, dims=2))
+    μ = zeros(Float32, m)
+    σ = zeros(Float32, m)
+    @inbounds for i in 1:m
+        μ[i], σ[i] = mean_and_std(
+            sums1[i], soss1[i], n1,
+            sums2[i], soss2[i], n2,
+        )
+    end
     if proc.standardize
-        if inferparams
-            σ = vec(std(X, dims=2))
-            for i in 1:length(σ)
-                σ[i] = ifelse(σ[i] > 0, σ[i], proc.invstd[i])
-            end
-            invstd = inv.(σ)
-        else
-            invstd = proc.invstd
-        end
-        @inbounds for j in 1:size(X, 2), i in 1:size(X, 1)
+        invstd = inv.(σ)
+        @inbounds for j in 1:n2, i in 1:m
             X[i,j] = (X[i,j] - μ[i]) * invstd[i]
         end
     else
         X .-= μ
     end
     return reducedims(proc.dimreducer, X)
+end
+
+# sos: sum of squares
+@inline function mean_and_std(
+        sum1::Float32, sos1::Float32, n1::Integer,
+        sum2::Float32, sos2::Float32, n2::Integer,
+    )
+    sum = sum1 + sum2
+    d = inv(n1 + n2)
+    μ = sum * d
+    σ = sqrt((sos1 + sos2 - 2 * μ * sum) * d + μ^2)
+    return μ, σ
 end
 
 indims(p::Preprocessor) = length(p.featurenames)
