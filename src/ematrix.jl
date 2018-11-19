@@ -1,5 +1,5 @@
 # Expression Matrix
-# -----------------
+# =================
 
 # A matrix wrapper.
 struct ExpressionMatrix{T}

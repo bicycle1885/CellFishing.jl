@@ -1,5 +1,12 @@
+# Bit Vectors
+# ===========
+
+"""
+A bit vector type to represent hash values.
+"""
 abstract type BitVec end
 
+# Concrete types.
 primitive type BitVec64  <: BitVec  64 end
 primitive type BitVec128 <: BitVec 128 end
 primitive type BitVec256 <: BitVec 256 end
@@ -9,6 +16,7 @@ using Core: Intrinsics
 
 const BaseInts = Union{Bool,Int8,UInt8,Int16,UInt16,Int32,UInt32,Int64,UInt64}
 
+# Define bit operations.
 for T in [:BitVec64, :BitVec128, :BitVec256, :BitVec512]
     @eval begin
         $T(x::BaseInts) = convert($T, x)

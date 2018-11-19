@@ -1,9 +1,11 @@
+# Differentially Expressed Gene Analysis
+# ======================================
+
 struct DEGenes
     names::Vector{String}
     means::Matrix{Float64}
     negatives::Matrix{Float64}
     positives::Matrix{Float64}
-    bracketed::BitMatrix
 end
 
 const DEFAULT_NUM_NEIGHBORS = 10
@@ -39,7 +41,6 @@ function finddegs(
     means = zeros(m, n)
     negatives = zeros(m, n)
     positives = zeros(m, n)
-    bracketed = falses(m, n)
     for j in 1:n
         counts_j = Y[featurenames,j]
         counts_nns = index.counts[:,neighbors.indexes[:,j]]
@@ -55,11 +56,10 @@ function finddegs(
             means[i,j] = α[i] / β
             negatives[i,j] = logcdf(nb, y)
             positives[i,j] = logccdf(nb, y-1)
-            bracketed[i,j] = counts_nns_minimum[i] < y < counts_nns_maximum[i]
         end
     end
     # change the base of logarithm from e (≈2.718) to 10
     negatives .*= inv(log(10))
     positives .*= inv(log(10))
-    return DEGenes(copy(featurenames), means, negatives, positives, bracketed)
+    return DEGenes(copy(featurenames), means, negatives, positives)
 end

@@ -1,4 +1,9 @@
 # Compressed Matrix
+# =================
+
+"""
+A data type to represent a count matrix with lossless compression.
+"""
 struct CMatrix{T<:Integer} <: AbstractMatrix{T}
     data::Vector{UInt8}
     size::Tuple{Int,Int}

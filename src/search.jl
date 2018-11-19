@@ -1,5 +1,5 @@
 # k-NN Searcher
-# -------------
+# =============
 
 """
 A set of k-nearest neighboring cells.
