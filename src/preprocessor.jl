@@ -106,7 +106,7 @@ function Preprocessor(
     )
 end
 
-function preprocess(proc::Preprocessor, Y::ExpressionMatrix, inferparams::Bool)
+function preprocess(proc::Preprocessor, Y::ExpressionMatrix, inferstats::Symbol)
     perm = zeros(Int, length(proc.featurenames))
     for (i, name) in enumerate(proc.featurenames)
         perm[i] = get(Y.featuremap, name, 0)
@@ -116,23 +116,36 @@ function preprocess(proc::Preprocessor, Y::ExpressionMatrix, inferparams::Bool)
         X .*= proc.scalefactor ./ sum(X, dims=1)
     end
     transform!(proc.transformer, X)
-    n1 = proc.n
-    m, n2 = size(X)
-    sums1 = proc.sums
-    soss1 = proc.soss
-    sums2 = vec(sum(X, dims=2))
-    soss2 = vec(sum(X.^2, dims=2))
-    μ = zeros(Float32, m)
-    σ = zeros(Float32, m)
-    @inbounds for i in 1:m
-        μ[i], σ[i] = mean_and_std(
-            sums1[i], soss1[i], n1,
-            sums2[i], soss2[i], n2,
-        )
+    m, n = size(X)
+    @assert length(proc.sums) == length(proc.soss) == m
+    if inferstats == :query
+        μ = vec(mean(X, dims=2))
+        σ = vec(std(X, dims=2))
+        @inbounds for i in 1:m
+            # insert the std of the database if no variability in the query cells
+            if σ[i] == 0
+                σ[i] = sqrt((proc.soss[i] - 2 * μ[i] * proc.sums[i]) / proc.n + μ[i]^2)
+            end
+        end
+    elseif inferstats == :database
+        μ = proc.sums ./ proc.n
+        σ = sqrt.((proc.soss .- 2 .* μ .* proc.sums) ./ proc.n .+ μ.^2)
+    else
+        @assert inferstats == :both
+        sums = vec(sum(X, dims=2))
+        soss = vec(sum(X.^2, dims=2))
+        μ = zeros(Float32, m)
+        σ = zeros(Float32, m)
+        @inbounds for i in 1:m
+            μ[i], σ[i] = mean_and_std(
+                proc.sums[i], proc.soss[i], proc.n,
+                sums[i], soss[i], n,
+            )
+        end
     end
     if proc.standardize
         invstd = inv.(σ)
-        @inbounds for j in 1:n2, i in 1:m
+        @inbounds for j in 1:n, i in 1:m
             X[i,j] = (X[i,j] - μ[i]) * invstd[i]
         end
     else

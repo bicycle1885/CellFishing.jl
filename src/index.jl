@@ -218,7 +218,7 @@ function CellIndex(
     end
     # preprocess expression profiles
     preproc = Preprocessor(Y, transformer, PCA(n_dims, randomize=randomize), normalize, standardize, Float32(scalefactor))
-    X = preprocess(preproc, Y, false)
+    X = preprocess(preproc, Y, :database)
     # hash preprocessed data
     lshashes = LSHash{T}[]
     for _ in 1:n_lshashes

@@ -34,27 +34,32 @@ end
         counts::AbstractMatrix,
         featurenames::AbstractVector{String},
         index::CellIndex;
-        inferparams::Bool=true
+        inferstats::Symbol=:both
     ) -> NearestCells
 
 Find `k`-nearest neighboring cells from `index`.
 
-If `inferparams=true`, feature (gene) parameters are inferred from the `counts`
-argument.  Note that `counts` should not be biased and have enough cells to
-properly infer the parameters.
+The `inferstats` parameter specifies the way to infer feature (gene)
+statistics. If it is `:both` (default), they are inferred both from the query
+and the database cells. If it is `:query`, they are inferred only from the
+query cells.  If it is `:database`, they are inferred only from the database
+cells. No other values are allowed.
 """
 function findneighbors(
         k::Integer,
         counts::AbstractMatrix,
         featurenames::AbstractVector{String},
         index::CellIndex;
-        inferparams::Bool=true)
-    return findneighbors(k, ExpressionMatrix(counts, featurenames), index; inferparams=inferparams)
+        inferstats::Symbol=:both)
+    return findneighbors(k, ExpressionMatrix(counts, featurenames), index; inferstats=inferstats)
 end
 
-function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex; inferparams::Bool=true)
+function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex; inferstats::Symbol=:both)
     if k < 0
         throw(ArgumentError("negative k"))
+    end
+    if inferstats ∉ (:both, :query, :database)
+        throw(ArgumentError("invalid value for the inferstats parameter"))
     end
     n = size(Y, 2)
     L = length(index.lshashes)
@@ -63,7 +68,7 @@ function findneighbors(k::Integer, Y::ExpressionMatrix, index::CellIndex; inferp
     rtstats = index.rtstats
     tic!(rtstats)
     # preprocess
-    X = preprocess(index.preproc, Y, inferparams)
+    X = preprocess(index.preproc, Y, inferstats)
     # allocate temporary memories
     neighbors = Matrix{Int}(undef, k * L, n)
     neighbors_tmp = Matrix{Int}(undef, k, n)
