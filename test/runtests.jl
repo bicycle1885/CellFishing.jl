@@ -1,10 +1,7 @@
-include("../src/CellFishing.jl")
-
+using CellFishing: CellFishing, HammingIndexes
 using Test
 using Random: seed!, shuffle
 using SparseArrays: SparseMatrixCSC
-
-const HammingIndexes = CellFishing.HammingIndexes
 
 @testset "BitVectors" begin
     for T in [CellFishing.BitVec64,
