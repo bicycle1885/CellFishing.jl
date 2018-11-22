@@ -1,7 +1,9 @@
 using CellFishing: CellFishing, HammingIndexes
 using Test
-using Random: seed!, shuffle
+using Random: Random, shuffle
 using SparseArrays: SparseMatrixCSC
+
+resetseed!() = Random.seed!(1234)
 
 @testset "BitVectors" begin
     for T in [CellFishing.BitVec64,
@@ -31,7 +33,7 @@ end
 @testset "HammingIndexes" begin
     linear = HammingIndexes.LinearSearch()
     mindex = HammingIndexes.MultiIndexSearch()
-    seed!(1234)
+    resetseed!()
     data = rand(UInt64, 1000)
     db = HammingIndexes.HammingIndex(data)
     for r in 0:16
@@ -54,7 +56,7 @@ end
         @test ok
     end
 
-    seed!(1234)
+    resetseed!()
     data = rand(UInt64, 1_000_000)
     db = HammingIndexes.HammingIndex(data)
     queries = data[rand(1:length(data), 100)]
@@ -81,7 +83,7 @@ end
 
 @testset "CMatrix" begin
     m, n = 100, 200
-    seed!(1234)
+    resetseed!()
     counts = rand(0:100, m, n)
     # with the default parameters
     M = CellFishing.CMatrix(counts)
@@ -128,7 +130,7 @@ end
 end
 
 @testset "CellIndex" begin
-    seed!(1234)
+    resetseed!()
     m, n = 100, 200
     counts = rand(0:1000, m, n)
     featurenames = string.("feature:", 1:m)
@@ -157,7 +159,7 @@ end
         @test CellFishing.load(tmpfile).counts !== nothing
     end
 
-    seed!(12345)
+    resetseed!()
     m, n = 100, 200
     counts = rand(0:1000, m, n)
     featurenames = string.("feature:", 1:m)
