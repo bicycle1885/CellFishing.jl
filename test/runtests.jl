@@ -2,6 +2,7 @@ using CellFishing: CellFishing, HammingIndexes
 using Test
 using Random: Random, shuffle
 using SparseArrays: SparseMatrixCSC
+using Distributions: Poisson
 
 resetseed!() = Random.seed!(1234)
 
@@ -197,4 +198,23 @@ end
         end
     end
     @test n_ok / n_all ≈ 1.0
+end
+
+@testset "DEG" begin
+    resetseed!()
+    m, n = 100, 3000
+    λ = rand(m) * 100
+    counts = vcat([rand(Poisson(λ[i]), n)' for i in 1:m]...)
+    featurenames = string.("feature:", 1:m)
+    features = CellFishing.selectfeatures(counts, featurenames, n_min_features=m)
+    index = CellFishing.CellIndex(counts, features, keep_counts=true)
+    for _ in 1:10
+        n = 1000
+        counts = vcat([rand(Poisson(λ[i]), n)' for i in 1:m]...)
+        neighbors = CellFishing.findneighbors(1, counts, featurenames, index)
+        degs = CellFishing.finddegs(counts, featurenames, neighbors.indexes[1,:], index)
+        #@show sum(degs.negatives .< -3), sum(degs.positives .< -3)
+        @test 10 < sum(degs.negatives .< -3) < 70
+        @test 10 < sum(degs.positives .< -3) < 70
+    end
 end
