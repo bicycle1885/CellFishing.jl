@@ -103,8 +103,6 @@ function finddegs(
         counts_j = Y[featurenames,j]
         counts_nns = index.counts[:,neighbors.indexes[:,j]]
         counts_nns_normalized = sum(counts_j) * (counts_nns ./ sum(counts_nns, dims=1))
-        counts_nns_minimum = minimum(counts_nns_normalized, dims=2)
-        counts_nns_maximum = maximum(counts_nns_normalized, dims=2)
         α = α₀ .+ sum(counts_nns_normalized, dims=2)
         β = β₀  + k
         for i in 1:m
