@@ -130,7 +130,7 @@ function rankcells!(neighbors::Matrix{Int}, Z::Matrix{T}, lshashes::Vector{LSHas
             end
             d = 0
             for l in 1:L
-                d += hammdist(Z[l,j], lshashes[l].hammingindex[x])
+                d += count_ones(Z[l,j] ⊻ lshashes[l].hammingindex[x])
             end
             if ncs.indexes[k,j] == 0 || d < ncs.hammingdistances[k,j]
                 ncs.indexes[k,j] = x
