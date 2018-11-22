@@ -1,4 +1,4 @@
-# CellFishing.jl ꙮ 🎣
+# CellFishing.jl 🎣
 
 CellFishing.jl (**cell** **fi**nder via ha**shing**) is a tool to find similar
 cells of query cells based on their transcriptome expression profiles.
@@ -24,8 +24,7 @@ database = CellFishing.CellIndex(counts, features, metadata=cellnames)
 
 # Save/load the database to/from a file (optional).
 # CellFishing.save("database.cf", database)
-# run(`gzip database.cf`)  # or run(`zstd database.cf`)
-# database = CellFishing.load("database.cf.gz")
+# database = CellFishing.load("database.cf")
 
 # Load expression profiles of query cells.
 data = CSV.read("query.txt", delim='\t')
@@ -55,15 +54,15 @@ end
 First of all, you need to install a Julia compiler.  A recommended way is to
 download a pre-built binary of Julia. The pre-built binaries for several major
 platforms are distributed at <https://julialang.org/downloads/>.  Currently,
-CellFishing.jl supports Julia 0.7 or later. However, we highly recommend
-using Julia 1.0 because Julia 0.7 is developmental and thus will soon be
-unmaintained.
+CellFishing.jl supports Julia 1.0 or later.
 
 Then, install CellFishing.jl with the following command:
 
-    # Julia 0.7/1.0
     $ julia -e 'using Pkg; Pkg.add(PackageSpec(url="git://github.com/bicycle1885/CellFishing.jl.git"))'
-    
+
+Alternatively, you can use the `add` command in the package management mode of Julia:
+
+    (v1.0) pkg> add git@github.com:bicycle1885/CellFishing.jl.git
 
 To check the installation, you can try `using CellFishing` in your REPL:
 
@@ -86,7 +85,6 @@ No error messages mean you have successfully installed CellFishing.jl.
 
 To run unit tests, execute the following command:
 
-    # Julia 0.7/1.0
     $ julia -e 'using Pkg; Pkg.test("CellFishing")'
 
 
