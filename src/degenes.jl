@@ -1,6 +1,17 @@
 # Differentially Expressed Gene Analysis
 # ======================================
 
+"""
+A list of probabilities of genes.
+
+Fields
+------
+
+- `names`: gene names.
+- `means`: estimated means (#genes x #queries).
+- `negatives`: logarithmic probabilities (the base is 10; #genes × #queries).
+- `positives`: logarithmic probabilities (the base is 10; #genes × #queries).
+"""
 struct DEGenes
     names::Vector{String}
     means::Matrix{Float64}
@@ -10,10 +21,57 @@ end
 
 const DEFAULT_NUM_NEIGHBORS = 10
 
+"""
+    finddegs(
+        counts::AbstractMatrix,
+        featurenames::AbstractVector{<:AbstractString},
+        cellindexes::AbstractVector{<:Integer},
+        index::CellIndex;
+        k::Integer=$(DEFAULT_NUM_NEIGHBORS),
+    ) -> DEGenes
+
+Calculate probabilities of observing the counts or extremes.
+
+This function returns a `DEGenes` object that contains probabilities observing
+the counts stored in `counts` or their extremes. The expected expression level
+for each gene is estimated from the nearby cells of `cellindexes` in the
+database.  That is, the lower the probability is, the infrequent observing the
+count by chance is.
+
+A `DEGenes` object has two fields to store the probabilities: `negatives` and
+`positives`.  If a value of `negatives` is low, that means that the
+corresponding count is supposed to be negatively regulated. Likewise, if a
+value of `positives` is low, that means that the corresponding count is
+supposed to be positively regulated. Note that the probabilities are
+log-transformed (the base of logarithm is 10) because they may possibly be very
+close to zero. For example, a probability of 0.0001 (= 0.01%) becomes -4 after
+the log transformation.
+
+Arguments
+---------
+
+Required arguments (positional):
+- `counts`:
+    A transcriptome expression matrix (#features × #cells).
+- `featurenames`:
+    A vector of feature names (#features).
+    Each of the elements must correspond to a row of the `counts` matrix.
+- `cellindexes`:
+    A vector of cell indexes in the database to be compared with the `counts`
+    matrix (#cells).
+- `index`:
+    A database object.
+    It must store raw counts of the database cells in it, which is activated by
+    passing `keep_counts=true` when creating the database object (see
+    [`CellIndex`](@ref)).
+
+Other parameters:
+- `k`: The number of nearest neighbors used to estimate the mean expression level.
+"""
 function finddegs(
         counts::AbstractMatrix,
-        featurenames::AbstractVector{String},
-        cellindexes::AbstractVector{Int},
+        featurenames::AbstractVector{<:AbstractString},
+        cellindexes::AbstractVector{<:Integer},
         index::CellIndex;
         k::Integer=DEFAULT_NUM_NEIGHBORS,)
     return finddegs(ExpressionMatrix(counts, featurenames), cellindexes, index, k=k)
@@ -21,7 +79,7 @@ end
 
 function finddegs(
         Y::ExpressionMatrix,
-        cellindexes::AbstractVector{Int},
+        cellindexes::AbstractVector{<:Integer},
         index::CellIndex;
         k::Integer=DEFAULT_NUM_NEIGHBORS,)
     n = size(Y, 2)

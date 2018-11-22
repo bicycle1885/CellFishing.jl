@@ -119,7 +119,7 @@ function Base.show(io::IO, index::CellIndex)
 end
 
 """
-    CellIndex{T}(counts, features; <keyword arguments>...)
+    CellIndex(counts, features; <keyword arguments>...)
 
 Create a cell index from a count matrix `counts` along with `features`.
 
