@@ -1,7 +1,7 @@
 name = "CellFishing"
 uuid = "5ab3512e-c64d-48f6-b1c0-509c1121fdda"
 license = "MIT"
-version = "0.2.0"
+version = "0.3.0"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
