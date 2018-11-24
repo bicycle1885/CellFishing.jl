@@ -1,5 +1,7 @@
 # CellFishing.jl 🎣
 
+[![DOI](https://zenodo.org/badge/138121738.svg)](https://zenodo.org/badge/latestdoi/138121738)
+
 CellFishing.jl (**cell** **fi**nder via ha**shing**) is a tool to find similar
 cells of query cells based on their transcriptome expression profiles.
 The preprint is available at https://doi.org/10.1101/374462.
