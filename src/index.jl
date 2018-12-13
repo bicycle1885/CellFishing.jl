@@ -156,7 +156,7 @@ Parameters for locality-sensitive hashing:
 """
 function CellIndex(
         # required arguments
-        counts::AbstractMatrix{<:Real},
+        counts::AbstractMatrix{<:Union{S,Missing}},
         features::Features;
         # additional data
         metadata=nothing,
@@ -173,7 +173,7 @@ function CellIndex(
         n_bits::Integer=128,
         n_lshashes::Integer=4,
         superbit::Integer=min(n_dims, n_bits),
-       )
+       ) where S <: Real
     # check arguments
     m, n = size(counts)
     if nfeatures(features) != m
@@ -202,7 +202,7 @@ function CellIndex(
     end
     # filter features
     featurenames = selectedfeatures(features)
-    counts = Matrix(counts[features.selected,:])
+    counts = Matrix{S}(counts[features.selected,:])
     Y = ExpressionMatrix(convert(Matrix{Float32}, counts), featurenames)
     # make cell sketches
     T = n_bits ==  64 ? BitVec64  :

@@ -150,6 +150,9 @@ end
         @test CellFishing.load(tmpfile) isa CellFishing.CellIndex
         @test CellFishing.load(tmpfile).counts === nothing
     end
+    # accept Union{T,Missing} values (but no missings)
+    index = CellFishing.CellIndex(Matrix{Union{Int,Missing}}(counts), features, metadata=string.("cell:", 1:n))
+    @test index isa CellFishing.CellIndex
     # keep raw counts
     index = CellFishing.CellIndex(counts, features, keep_counts=true)
     @test index.counts == counts[features.selected,:]
