@@ -4,23 +4,13 @@ using CellFishing
 using HDF5
 using DocOpt
 
-if VERSION ≥ v"0.7.0-rc1"
-    using Dates
-    using Random
-else
-    using Compat
-    using Compat: @info
-    struct Data
-        counts::AbstractMatrix
-        featurenames::Vector{String}
-        cellnames::Vector{String}
-    end
-end
+using Dates
+using Random
 
 args = docopt("""
 Usage:
     cellfishing build [--n-bits=<n-bits> --n-lshashes=<n-lshashes>] <reference>
-    cellfishing search [--infer-params] <database> <query>
+    cellfishing search [--infer-stats=<data>] <database> <query>
 
 CellFishing ― Cell search engine for scRNA-seq.
 
@@ -40,7 +30,7 @@ Options:
     --version                  Show version.
     --n-bits=<n-bits>          The number of bits for hashing [default: 128].
     --n-lshashes=<n-lshashes>  The number of locality-sensitive hashes [default: 4].
-    --infer-params             Infer parameters from the query data.
+    --infer-stats=<data>       Infer statistics from the query, the database, or both [default: both].
 """)
 
 function loadloom(datafile)
@@ -48,11 +38,7 @@ function loadloom(datafile)
         counts = Matrix(read(file, "/matrix")')
         featurenames = read(file, "/row_attrs/Gene")
         cellnames = read(file, "/col_attrs/CellID")
-        @static if VERSION ≥ v"0.7.0-rc1"
-            return (counts=counts, featurenames=featurenames, cellnames=cellnames)
-        else
-            return Data(counts, featurenames, cellnames)
-        end
+        return (counts=counts, featurenames=featurenames, cellnames=cellnames)
     end
 end
 
@@ -116,7 +102,12 @@ elseif args["search"]
         data = loaddata(args["<query>"])
     end
     @message "Searching the database" begin
-        neighbors = CellFishing.findneighbors(k, data.counts, data.featurenames, database, inferparams=args["--infer-params"])
+        inferstats = args["--infer-stats"]
+        inferstats = inferstats == "query"    ? :query :
+                     inferstats == "database" ? :database :
+                     inferstats == "both"     ? :both :
+                     error("invalid --infer-stats option")
+        neighbors = CellFishing.findneighbors(k, data.counts, data.featurenames, database, inferstats=inferstats)
     end
     @message "Writing neighbors" begin
         writeknn(stdout, data.cellnames, database.metadata, neighbors.indexes)
