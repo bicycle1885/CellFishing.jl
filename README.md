@@ -18,7 +18,7 @@ using CSV
 data = CSV.read("database.txt", delim='\t')
 cellnames = string.(names(data))
 featurenames = string.(data[:,1])
-counts = Matrix(data[:,2:end])
+counts = Matrix{Int}(data[:,2:end])
 
 # Select features and create an index (or a database).
 features = CellFishing.selectfeatures(counts, featurenames)
@@ -32,7 +32,7 @@ database = CellFishing.CellIndex(counts, features, metadata=cellnames)
 data = CSV.read("query.txt", delim='\t')
 cellnames = string.(names(data))
 featurenames = string.(data[:,1])
-counts = Matrix(data[:,2:end])
+counts = Matrix{Int}(data[:,2:end])
 
 # Search the database for similar cells; k cells will be returned per query.
 k = 10
