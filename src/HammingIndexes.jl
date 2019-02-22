@@ -101,13 +101,13 @@ function read_4chunks(src::BitVector, from::Int)
     return a, b, c, d
 end
 
-function read_chunk(src, from::Int)
+function read_chunk(src::BitVector, from::Int)
     @assert BITS_PER_CHUNK == sizeof(UInt64) * 8
     chunk = UInt64(0)
     for k in 0:BITS_PER_CHUNK-1
         i = from + k
         chunk >>= 1
-        if i ≤ endof(src) && src[i]
+        if i ≤ length(src) && src[i]
             chunk |= UInt64(1) << 63
         end
     end
