@@ -29,9 +29,14 @@ for T in [:BitVec64, :BitVec128, :BitVec256, :BitVec512]
         Base.:>>(bv::$T, n::BaseInts) = Intrinsics.lshr_int(bv, n)
         Base.getindex(bv::$T, i::Integer) = Intrinsics.trunc_int(Bool, bv >> (i - 1))
         Base.rem(bv::$T, ::Type{U}) where {U<:BaseInts} = Intrinsics.trunc_int(U, bv)
-        Base.count_ones(bv::$T) = Intrinsics.trunc_int(Int, Intrinsics.ctpop_int(bv))
+        Base.count_ones(bv::$T) = Intrinsics.ctpop_int(bv) % Int
     end
 end
+
+# Intrinsics have became more stringent from Julia 1.1.
+# https://github.com/JuliaLang/julia/pull/29422
+Base.convert(::Type{BitVec64}, x::Union{Int64,UInt64}) = Intrinsics.bitcast(BitVec64, x)
+Base.rem(bv::BitVec64, ::Type{U}) where U <: Union{Int64,UInt64} = Intrinsics.bitcast(U, bv)
 
 function Base.rand(mt::MersenneTwister, ::Type{T}) where {T<:BitVec}
     bv::T = 0
