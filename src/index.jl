@@ -146,6 +146,7 @@ Parameters for preprocessing:
 - `scalefactor=1.0e4`: The scale factor of cell-wise counts (or library sizes).
 - `transformer=:log1p`: Variance-stabilizing transformer (`:log1p` or `:ftt`).
 - `n_dims=50`: The number of dimensions of principal components.
+               This value must be at least as large as the number of selected features.
 - `randomize=true`: Use the randomized version of SVD or not.
 - `standardize=true`: Standardize features or not.
 
@@ -182,8 +183,8 @@ function CellIndex(
     if nselected(features) == 0
         throw(ArgumentError("no selected features"))
     end
-    if !(1 ≤ n_dims ≤ m)
-        throw(ArgumentError("invalid n_dims"))
+    if !(1 ≤ n_dims ≤ nselected(features))
+        throw(ArgumentError("invalid n_dims (possibly too large)"))
     end
     if n_bits ∉ (64, 128, 256, 512)
         throw(ArgumentError("invalid n_bits"))
