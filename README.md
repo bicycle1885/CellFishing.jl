@@ -4,7 +4,8 @@
 
 CellFishing.jl (**cell** **fi**nder via ha**shing**) is a tool to find similar
 cells of query cells based on their transcriptome expression profiles.
-The published paper is available at https://doi.org/10.1186/s13059-019-1639-x.
+
+Kenta Sato, Koki Tsuyuzaki, Kentaro Shimizu, and Itoshi Nikaido. "CellFishing.jl: an ultrafast and scalable cell search method for single-cell RNA sequencing." *Genome Biology*, 2019 20:31. https://doi.org/10.1186/s13059-019-1639-x
 
 ```julia
 # Import packages.
