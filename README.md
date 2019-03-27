@@ -10,13 +10,13 @@ Kenta Sato, Koki Tsuyuzaki, Kentaro Shimizu, and Itoshi Nikaido. "CellFishing.jl
 ```julia
 # Import packages.
 using CellFishing
-using CSV
+using TableReader
 
 # Load expression profiles of database cells.
 # Note: We highly recommend using the Loom format (http://loompy.org/) to
 # load expression data, because loading a large matrix in plain text takes
 # extremely long time.
-data = CSV.read("database.txt", delim='\t')
+data = readtsv("database.txt")  # use readcsv if your file is comma-separated
 cellnames = string.(names(data))
 featurenames = string.(data[:,1])
 counts = Matrix{Int}(data[:,2:end])
@@ -30,7 +30,7 @@ database = CellFishing.CellIndex(counts, features, metadata=cellnames)
 # database = CellFishing.load("database.cf")
 
 # Load expression profiles of query cells.
-data = CSV.read("query.txt", delim='\t')
+data = readtsv("query.txt")
 cellnames = string.(names(data))
 featurenames = string.(data[:,1])
 counts = Matrix{Int}(data[:,2:end])
